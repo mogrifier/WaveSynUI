@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import java.lang.String?>
+<?import javafx.collections.FXCollections?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.erichizdepski.wavetable.Controller">
+<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.172-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.erichizdepski.wavetable.Controller">
    <children>
-      <Button layoutX="47.0" layoutY="89.0" mnemonicParsing="false" onAction="#stopSynth" text="Stop Synth" />
+      <Label layoutX="21.0" layoutY="107.0" text="Select Wavetable" />
+      <ChoiceBox fx:id="wavetableSelect" layoutX="21.0" layoutY="124.0" prefWidth="150.0" />
+      <Label layoutX="21.0" layoutY="183.0" text="Select LFO Type" />
+      <ChoiceBox fx:id="lfoType" layoutX="21.0" layoutY="200.0" prefWidth="150.0">
+         <items>
+            <FXCollections fx:factory="observableArrayList">
+               <String fx:value="SAW" />
+               <String fx:value="SINE" />
+               <String fx:value="TRIANGLE" />
+            </FXCollections>
+         </items>
+      </ChoiceBox>
    </children>
 </AnchorPane>

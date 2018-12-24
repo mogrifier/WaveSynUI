@@ -1,6 +1,7 @@
 package com.erichizdepski.wavetable;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -22,6 +23,25 @@ public class Main extends Application {
         primaryStage.show();
         controls = loader.getController();
     }
+
+
+    @Override
+    public void stop() {
+
+        if (controls.shutdown())
+        {
+            System.out.println("synth shutdown");
+        }
+        else
+        {
+            System.out.println("synth failed to hutdown");
+        }
+
+        Platform.exit();
+        System.exit(0);
+    }
+
+
 
     public static void main(String[] args) {
         launch(args);

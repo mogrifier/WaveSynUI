@@ -16,21 +16,41 @@ public class WaveSynthesizer extends Thread {
     //for loading wave tables
     List<String> files = null;
     List<ByteBuffer> tables = null;
-    boolean alive = true;
+    boolean alive = false;
+    int wavetableIndex = 0;
+    boolean changedIndex = false;
 
 
     public void setAlive(boolean alive) {
         this.alive = alive;
     }
 
+    public List<String> getWavetableNames() {
+        return files;
+    }
+
+    public int getWavetableIndex() {
+        return wavetableIndex;
+    }
+
+    public void setWavetableIndex(int wavetableIndex) {
+        this.wavetableIndex = wavetableIndex;
+
+        LOGGER.log(Level.INFO, "new wavetable index: " + this.wavetableIndex);
+        changedIndex = true;
+    }
 
     public WaveSynthesizer()throws IOException
     {
         TableLoader loader = new TableLoader();
 
         files = loader.getTableNames("/com/erichizdepski/wavetable/");
+        //put the wavetable names in the UI
+
+        //load the wavetables for each file name
         tables = loader.loadTables(files);
 
+        //setup the pipes for audio generation and playback.
         outflow = new PipedOutputStream();
         waveStream = new PipedInputStream();
     }
@@ -47,17 +67,34 @@ public class WaveSynthesizer extends Thread {
     public void run()
     {
         //any data written to waveStream will cause audio playback
-        byte[] data = generateWaveStream();
+        byte[] data = null;
 
         try {
             waveStream.connect(outflow); //connecting one half is enough
             //need to make the data repeat if desired
-            int max = data.length/WavesynConstants.BUFFERSIZE;
+            int max = 0;
+            //default is -1 to ensure first time through it forces call to generateWaveStream()
+            int cachedIndex = -1;
             while(alive) {
+
+                //get a complete data tream of all samples in the wavetable per the scan performed
+                /*
+                would be smart to cache the data unless the wavetable index changes
+                 */
+                if (wavetableIndex != cachedIndex) {
+                    data = generateWaveStream();
+                    cachedIndex = wavetableIndex;
+                }
+                max = data.length/WavesynConstants.BUFFERSIZE;
+
                 for (int i = 0; i < max; i++) {
                     //write buffers of data to the player thread
                     outflow.write(data, i * WavesynConstants.BUFFERSIZE, WavesynConstants.BUFFERSIZE);
-
+                    if (changedIndex)
+                    {
+                        changedIndex = false;
+                        break;
+                    }
                 }
             }
         }
@@ -91,7 +128,7 @@ public class WaveSynthesizer extends Thread {
                 //super fast
                 repeat = 10;
                 for (int j = 0; j < repeat; j++) {
-                    bigBuffer.put(TableLoader.getWaveForm(tables.get(69), i));
+                    bigBuffer.put(TableLoader.getWaveForm(tables.get(getWavetableIndex()), i));
                 }
             }
 
@@ -106,7 +143,7 @@ public class WaveSynthesizer extends Thread {
                 //super fast
                 repeat = 10;
                 for (int j = 0; j < repeat; j++) {
-                    bigBuffer.put(TableLoader.getWaveForm(tables.get(69), i));
+                    bigBuffer.put(TableLoader.getWaveForm(tables.get(getWavetableIndex()), i));
                 }
             }
 
@@ -117,5 +154,11 @@ public class WaveSynthesizer extends Thread {
         bigBuffer.get(data);
 
         return data;
+    }
+
+    public void setLfoType(String lfo)
+    {
+        //use enumeration to match string name. ehh.
+        LOGGER.log(Level.INFO, "lfo type selected: " + lfo);
     }
 }
