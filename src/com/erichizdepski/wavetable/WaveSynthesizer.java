@@ -18,7 +18,10 @@ public class WaveSynthesizer extends Thread {
     List<ByteBuffer> tables = null;
     boolean alive = false;
     int wavetableIndex = 0;
-    boolean changedIndex = false;
+    int startIndex = 10;
+    int stopIndex = 30;
+    //ensure at start up it loads wave data
+    boolean changedParameter = true;
 
 
     public void setAlive(boolean alive) {
@@ -37,8 +40,30 @@ public class WaveSynthesizer extends Thread {
         this.wavetableIndex = wavetableIndex;
 
         LOGGER.log(Level.INFO, "new wavetable index: " + this.wavetableIndex);
-        changedIndex = true;
+        changedParameter = true;
     }
+
+
+    public int getStartIndex() {
+        return startIndex;
+    }
+
+    public void setStartIndex(int startIndex) {
+        this.startIndex = startIndex;
+        LOGGER.log(Level.INFO, "new start index: " + this.startIndex);
+        changedParameter = true;
+    }
+
+    public int getStopIndex() {
+        return stopIndex;
+    }
+
+    public void setStopIndex(int stopIndex) {
+        this.stopIndex = stopIndex;
+        LOGGER.log(Level.INFO, "new stop index: " + this.stopIndex);
+        changedParameter = true;
+    }
+
 
     public WaveSynthesizer()throws IOException
     {
@@ -81,18 +106,17 @@ public class WaveSynthesizer extends Thread {
                 /*
                 would be smart to cache the data unless the wavetable index changes
                  */
-                if (wavetableIndex != cachedIndex) {
+                if (changedParameter) {
                     data = generateWaveStream();
-                    cachedIndex = wavetableIndex;
+                    changedParameter = false;
                 }
                 max = data.length/WavesynConstants.BUFFERSIZE;
 
                 for (int i = 0; i < max; i++) {
                     //write buffers of data to the player thread
                     outflow.write(data, i * WavesynConstants.BUFFERSIZE, WavesynConstants.BUFFERSIZE);
-                    if (changedIndex)
+                    if (changedParameter)
                     {
-                        changedIndex = false;
                         break;
                     }
                 }
@@ -120,7 +144,7 @@ public class WaveSynthesizer extends Thread {
             //now lets play an audio file
 
 
-            for (int i = 7; i < 60; i++) {
+            for (int i = startIndex; i < stopIndex; i++) {
                 //build big buffer- make it a patch
                 //index = 35 + (int)Math.floor(Math.random() * 3);
                 tablePick = 50 +  (int) Math.floor(Math.random() * 3);
@@ -135,7 +159,7 @@ public class WaveSynthesizer extends Thread {
 
             //now run through backwards
 
-            for (int i = 58; i > 7; i--) {
+            for (int i = (stopIndex -2); i > startIndex; i--) {
                 //build big buffer- make it a patch
                 //index = 35 + (int)Math.floor(Math.random() * 3);
                 tablePick = 50 +  (int) Math.floor(Math.random() * 3);

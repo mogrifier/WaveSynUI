@@ -5,6 +5,7 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.Slider;
 
 import java.io.IOException;
 import java.util.List;
@@ -19,6 +20,10 @@ public class Controller {
 
     @FXML
     private ChoiceBox<String> lfoType, wavetableSelect;
+
+    @FXML
+    private Slider startIndex, stopIndex, scanRate;
+
 
     @FXML
     private void initialize()
@@ -54,6 +59,15 @@ public class Controller {
                 synth.setWavetableIndex(wavetableSelect.getSelectionModel().getSelectedIndex());
             });
 
+
+            // Handle Slider value change events.
+            startIndex.valueProperty().addListener((observable, oldValue, newValue) -> {
+                synth.setStartIndex(newValue.intValue());
+            });
+
+            stopIndex.valueProperty().addListener((observable, oldValue, newValue) -> {
+                synth.setStopIndex(newValue.intValue());
+            });
 
             synth.setAlive(true);
             synth.start();
