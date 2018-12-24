@@ -69,6 +69,13 @@ public class Controller {
                 synth.setStopIndex(newValue.intValue());
             });
 
+
+            scanRate.valueProperty().addListener((observable, oldValue, newValue) -> {
+                //value is 1 to 101. Need to invert so low scan rate is a high number of sample repeats, effectively
+                //slowing down the scan rate, Must be >=1.
+                synth.setScanRate(101 - newValue.intValue());
+            });
+
             synth.setAlive(true);
             synth.start();
             player.setAlive(true);

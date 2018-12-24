@@ -19,7 +19,7 @@ public class Main extends Application {
         AnchorPane root = (AnchorPane)loader.load();
 
         primaryStage.setTitle("Wavesyn");
-        primaryStage.setScene(new Scene(root, 600, 400));
+        primaryStage.setScene(new Scene(root, 740, 400));
         primaryStage.show();
         controls = loader.getController();
     }

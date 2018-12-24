@@ -9,7 +9,7 @@
 <?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane prefHeight="400.0" prefWidth="556.0" xmlns="http://javafx.com/javafx/8.0.172-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.erichizdepski.wavetable.Controller">
+<AnchorPane prefHeight="400.0" prefWidth="740.0" xmlns="http://javafx.com/javafx/8.0.172-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.erichizdepski.wavetable.Controller">
    <children>
       <Label layoutX="21.0" layoutY="170.0" text="Select Wavetable" />
       <ChoiceBox fx:id="wavetableSelect" layoutX="21.0" layoutY="187.0" prefWidth="150.0" />
@@ -23,24 +23,24 @@
             </FXCollections>
          </items>
       </ChoiceBox>
-      <Slider fx:id="startIndex" layoutX="224.0" layoutY="193.0" majorTickUnit="16.0" max="63.0" minorTickCount="4" prefHeight="24.0" prefWidth="187.0" showTickMarks="true">
+      <Slider fx:id="startIndex" layoutX="224.0" layoutY="193.0" majorTickUnit="16.0" max="63.0" minorTickCount="4" prefHeight="24.0" prefWidth="322.0" showTickMarks="true">
       <tooltip>
          <Tooltip text="min index in table for the scan" />
       </tooltip>
       </Slider>
-      <Slider fx:id="stopIndex" layoutX="224.0" layoutY="269.0" majorTickUnit="16.0" max="63.0" minorTickCount="4" prefHeight="24.0" prefWidth="187.0" showTickMarks="true">
+      <Slider fx:id="stopIndex" layoutX="224.0" layoutY="269.0" majorTickUnit="16.0" max="63.0" minorTickCount="4" prefHeight="24.0" prefWidth="322.0" showTickMarks="true">
       <tooltip>
          <Tooltip text="max index in table for the scan" />
       </tooltip>
       </Slider>
       <Label layoutX="224.0" layoutY="170.0" text="Start Index" />
       <Label layoutX="224.0" layoutY="246.0" text="Stop Index" />
-      <Slider fx:id="scanRate" layoutX="473.0" layoutY="185.0" orientation="VERTICAL" showTickMarks="true">
+      <Slider fx:id="scanRate" layoutX="644.0" layoutY="185.0" orientation="VERTICAL" prefHeight="196.0" prefWidth="24.0" showTickMarks="true">
       <tooltip>
          <Tooltip text="Change the number of sample repeats; lower means faster cycle" />
       </tooltip>
       </Slider>
-      <Label layoutX="437.0" layoutY="170.0" text="Table Scan Rate" />
-      <TextArea layoutX="21.0" layoutY="18.0" prefHeight="132.0" prefWidth="513.0" text="Wavetable scanning is the process of choosing start and stop indexes within a wavetable and building up a waveform created by adding the different samples in the table in order from start to stop, under control of an &quot;LFO&quot;. The scan rate (like LFO rate) controls how many times each sample repeats. The LFO Type selects if and how the scanning goes forward or forward and backward through the range of indices. Saw goes forward only. Triangle and Since go forward and backward." wrapText="true" />
+      <Label layoutX="604.0" layoutY="170.0" text="Table Scan Rate" />
+      <TextArea layoutX="21.0" layoutY="18.0" prefHeight="108.0" prefWidth="700.0" text="Wavetable scanning is the process of choosing start and stop indexes within a wavetable and building up a waveform created by adding the different samples in the table in order from start to stop, under control of an &quot;LFO&quot;. The scan rate (like LFO rate) controls how many times each sample repeats. The LFO Type selects if and how the scanning goes forward or forward and backward through the range of indices. Saw goes forward only. Triangle and Since go forward and backward." wrapText="true" />
    </children>
 </AnchorPane>

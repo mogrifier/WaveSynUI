@@ -20,8 +20,24 @@ public class WaveSynthesizer extends Thread {
     int wavetableIndex = 0;
     int startIndex = 10;
     int stopIndex = 30;
+    int scanRate = 10;
     //ensure at start up it loads wave data
     boolean changedParameter = true;
+
+    public WaveSynthesizer()throws IOException
+    {
+        TableLoader loader = new TableLoader();
+
+        files = loader.getTableNames("/com/erichizdepski/wavetable/");
+        //put the wavetable names in the UI
+
+        //load the wavetables for each file name
+        tables = loader.loadTables(files);
+
+        //setup the pipes for audio generation and playback.
+        outflow = new PipedOutputStream();
+        waveStream = new PipedInputStream();
+    }
 
 
     public void setAlive(boolean alive) {
@@ -64,21 +80,16 @@ public class WaveSynthesizer extends Thread {
         changedParameter = true;
     }
 
-
-    public WaveSynthesizer()throws IOException
-    {
-        TableLoader loader = new TableLoader();
-
-        files = loader.getTableNames("/com/erichizdepski/wavetable/");
-        //put the wavetable names in the UI
-
-        //load the wavetables for each file name
-        tables = loader.loadTables(files);
-
-        //setup the pipes for audio generation and playback.
-        outflow = new PipedOutputStream();
-        waveStream = new PipedInputStream();
+    public int getScanRate() {
+        return scanRate;
     }
+
+    public void setScanRate(int scanRate) {
+        this.scanRate = scanRate;
+        LOGGER.log(Level.INFO, "new scan rate: " + this.scanRate);
+        changedParameter = true;
+    }
+
 
     public PipedInputStream getAudioStream()
     {
@@ -151,7 +162,7 @@ public class WaveSynthesizer extends Thread {
                 repeat = 5 + (int) Math.floor(Math.random() * 10);
                 //super fast
                 repeat = 10;
-                for (int j = 0; j < repeat; j++) {
+                for (int j = 0; j < scanRate; j++) {
                     bigBuffer.put(TableLoader.getWaveForm(tables.get(getWavetableIndex()), i));
                 }
             }
@@ -166,7 +177,7 @@ public class WaveSynthesizer extends Thread {
                 repeat = 5 + (int) Math.floor(Math.random() * 10);
                 //super fast
                 repeat = 10;
-                for (int j = 0; j < repeat; j++) {
+                for (int j = 0; j < scanRate; j++) {
                     bigBuffer.put(TableLoader.getWaveForm(tables.get(getWavetableIndex()), i));
                 }
             }
