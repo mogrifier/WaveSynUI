@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static com.erichizdepski.wavetable.WavesynConstants.*;
+
 public class Controller {
 
     private WaveSynthesizer synth;
@@ -22,7 +24,7 @@ public class Controller {
     private ChoiceBox<String> lfoType, wavetableSelect;
 
     @FXML
-    private Slider startIndex, stopIndex, scanRate;
+    private Slider startIndex, stopIndex, scanRate, pitchSlider;
 
 
     @FXML
@@ -46,6 +48,10 @@ public class Controller {
             //populate the UI choice list
             lfoType.setItems(lfoOptions);
             lfoType.getSelectionModel().selectFirst();
+
+            stopIndex.setValue(STOPINDEX_DEFAULT);
+            startIndex.setValue(STARTINDEX_DEFAULT);
+            scanRate.setValue(SCANRATE_DEFAULT);
 
             //populate the wavetable names and initialize choicebox
             List<String> names = synth.getWavetableNames();
@@ -74,6 +80,11 @@ public class Controller {
                 //value is 1 to 101. Need to invert so low scan rate is a high number of sample repeats, effectively
                 //slowing down the scan rate, Must be >=1.
                 synth.setScanRate(101 - newValue.intValue());
+            });
+
+            //pitch control test
+            pitchSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
+                synth.setPitch(newValue.intValue());
             });
 
             synth.setAlive(true);

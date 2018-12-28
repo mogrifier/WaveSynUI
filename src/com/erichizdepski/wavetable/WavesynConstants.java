@@ -1,5 +1,7 @@
 package com.erichizdepski.wavetable;
 
+import be.tarsos.dsp.io.TarsosDSPAudioFormat;
+
 import javax.sound.sampled.AudioFormat;
 import java.util.Arrays;
 import java.util.List;
@@ -10,15 +12,18 @@ public class WavesynConstants {
             new AudioFormat(AudioFormat.Encoding.PCM_SIGNED,
                     44100, 16, 1, 2, 44100, false);
 
+    public static final TarsosDSPAudioFormat TARSOS_MONO_WAV =
+            new TarsosDSPAudioFormat(TarsosDSPAudioFormat.Encoding.PCM_SIGNED,
+                    44100, 16, 1, 2, 44100, false);
 
     public static final int BUFFERSIZE = 5120;
-
+    public static final double SAMPLERATE = 44100;
     public static final int WAVESAMPLESIZE = 512;
 
-    public enum LfoType
-    {
-        SAW, SINE, TRIANGLE;
-    }
 
     public static List<String> LFO_TYPE = Arrays.asList("SAW", "SINE", "TRIANGLE");
+
+    public static final int STOPINDEX_DEFAULT = 20;
+    public static final int STARTINDEX_DEFAULT = 0;
+    public static final int SCANRATE_DEFAULT = 20;
 }

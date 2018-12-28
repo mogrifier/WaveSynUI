@@ -41,6 +41,7 @@
       </tooltip>
       </Slider>
       <Label layoutX="604.0" layoutY="170.0" text="Table Scan Rate" />
-      <TextArea layoutX="21.0" layoutY="18.0" prefHeight="108.0" prefWidth="700.0" text="Wavetable scanning is the process of choosing start and stop indexes within a wavetable and building up a waveform created by adding the different samples in the table in order from start to stop, under control of an &quot;LFO&quot;. The scan rate (like LFO rate) controls how many times each sample repeats. The LFO Type selects if and how the scanning goes forward or forward and backward through the range of indices. Saw goes forward only. Triangle and Since go forward and backward." wrapText="true" />
+      <TextArea layoutX="21.0" layoutY="18.0" prefHeight="108.0" prefWidth="700.0" text="Wavetable scanning is the process of choosing start and stop indexes within a wavetable and building up a waveform created by adding the different samples in the table in order from start to stop, under control of an &quot;LFO&quot;. The scan rate (like LFO rate) controls how many times each sample repeats. The LFO Type selects if and how the scanning goes forward or forward and backward through the range of indices. Saw goes forward only. Triangle and Sine go forward and backward." wrapText="true" />
+      <Slider fx:id="pitchSlider" blockIncrement="0.0" layoutX="26.0" layoutY="349.0" majorTickUnit="100.0" max="3000.0" minorTickCount="0" prefHeight="14.0" prefWidth="562.0" showTickMarks="true" snapToTicks="true" />
    </children>
 </AnchorPane>
