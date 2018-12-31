@@ -1,23 +1,17 @@
 package com.erichizdepski.wavetable;
 
-import be.tarsos.dsp.AudioDispatcher;
-import be.tarsos.dsp.PitchShifter;
-import be.tarsos.dsp.WaveformSimilarityBasedOverlapAdd;
+import be.tarsos.dsp.*;
 import be.tarsos.dsp.io.jvm.AudioDispatcherFactory;
 import be.tarsos.dsp.io.jvm.WaveformWriter;
 import be.tarsos.dsp.resample.RateTransposer;
-import com.erichizdepski.util.AudioBufferProcessor;
-import com.erichizdepski.util.MidiDeviceCheck;
-import com.erichizdepski.util.ShiftPitchSynchronous;
+import com.erichizdepski.util.*;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
-import java.io.File;
-import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -144,7 +138,7 @@ public class WaveSynthesizer extends Thread {
         try {
             waveStream.connect(outflow); //connecting one half is enough
             //need to make the data repeat if desired
-            int max = 0;
+            double max = 0;
             //default is -1 to ensure first time through it forces call to generateWaveStream()
             int cachedIndex = -1;
             while (alive) {
@@ -156,21 +150,55 @@ public class WaveSynthesizer extends Thread {
                 if (changedParameter) {
                     data = generateWaveStream();
                     changedParameter = false;
+                    saveFile(data, "sample1.wav");
+                    //outflow.flush();
                 }
                 max = data.length / WavesynConstants.BUFFERSIZE;
-
                 //now use the new bytebuffer for playback
 
-                for (int i = 0; i < max; i++) {
+                //I used short buffers for writing to allow realtime control of parameters
+
+                for (int i = 0; i < (int)max; i++) {
                     //write buffers of data to the player thread
                     outflow.write(data, i * WavesynConstants.BUFFERSIZE, WavesynConstants.BUFFERSIZE);
                     if (changedParameter) {
                         break;
                     }
                 }
+
+                //found out ending audio and fade in the beginning.
+                /*
+                if ( data.length % BUFFERSIZE > 0)
+                {
+                    int overage = data.length % BUFFERSIZE;
+                    //got extra data = how to interpolate to smooth it out?
+                    byte[] extra = AudioFader.fadeOut(Arrays.copyOfRange(data, 0, overage));
+                    outflow.write(extra);
+                    LOGGER.log(Level.INFO, "wrote extra faded audio " + extra.length);
+                }
+                */
+                //may have to fade in the beginning of the buffer to make smoother
+
+
+
+
             }
         } catch (IOException e) {
             LOGGER.log(Level.ALL, "IOException", e);
+        }
+    }
+
+    public void saveFile(byte[] data, String name)
+    {
+        //write data to a file
+        try {
+            FileOutputStream fos = new FileOutputStream(name);
+            fos.write(data);
+            fos.close();
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
         }
     }
 
@@ -181,62 +209,44 @@ public class WaveSynthesizer extends Thread {
     public byte[] generateWaveStream() {
         ByteBuffer bigBuffer = ByteBuffer.allocate(5000 * 32768);
         byte[] data = new byte[1];
-        int index = 0;
-        int repeat = 0;
-        int tablePick = 0;
+        byte[] sample;
 
         switch (lfo)
         {
             case SAW:
             {
-                LOGGER.log(Level.INFO,"saw lfo");
                 //now lets play an audio file
                 for (int i = startIndex; i < stopIndex; i++) {
                     //build big buffer- make it a patch
-                    //index = 35 + (int)Math.floor(Math.random() * 3);
-                    tablePick = 50 + (int) Math.floor(Math.random() * 3);
-                    repeat = 5 + (int) Math.floor(Math.random() * 10);
-                    //super fast
-                    repeat = 10;
+                    sample = TableLoader.getWaveForm(tables.get(getWavetableIndex()), i);
                     for (int j = 0; j < scanRate; j++) {
-                        bigBuffer.put(TableLoader.getWaveForm(tables.get(getWavetableIndex()), i));
+                        bigBuffer.put(sample);
                     }
                 }
                 break;
             }
 
-            case SINE:
-            {
-                LOGGER.log(Level.INFO,"sine lfo");
+            case SINE: {
                 break;
             }
 
             case TRIANGLE:
             {
-                LOGGER.log(Level.INFO,"triangle lfo");
                 //now lets play an audio file
                 for (int i = startIndex; i < stopIndex; i++) {
                     //build big buffer- make it a patch
-                    //index = 35 + (int)Math.floor(Math.random() * 3);
-                    tablePick = 50 + (int) Math.floor(Math.random() * 3);
-                    repeat = 5 + (int) Math.floor(Math.random() * 10);
-                    //super fast
-                    repeat = 10;
+                    sample = TableLoader.getWaveForm(tables.get(getWavetableIndex()), i);
                     for (int j = 0; j < scanRate; j++) {
-                        bigBuffer.put(TableLoader.getWaveForm(tables.get(getWavetableIndex()), i));
+                        bigBuffer.put(sample);
                     }
                 }
 
                 //now run through backwards
                 for (int i = (stopIndex - 2); i > startIndex; i--) {
                     //build big buffer- make it a patch
-                    //index = 35 + (int)Math.floor(Math.random() * 3);
-                    tablePick = 50 + (int) Math.floor(Math.random() * 3);
-                    repeat = 5 + (int) Math.floor(Math.random() * 10);
-                    //super fast
-                    repeat = 10;
+                    sample = TableLoader.getWaveForm(tables.get(getWavetableIndex()), i);
                     for (int j = 0; j < scanRate; j++) {
-                        bigBuffer.put(TableLoader.getWaveForm(tables.get(getWavetableIndex()), i));
+                        bigBuffer.put(sample);
                     }
                 }
                 break;
@@ -254,7 +264,8 @@ public class WaveSynthesizer extends Thread {
             shiftPitch(data, pitchShifted, pitch);
             pitchChanged = false;
             oldPitch = pitch;
-            return pitchShifted.array();
+            saveFile(pitchShifted.array(), "sample0.wav");
+            return AudioHelpers.trim(pitchShifted.array());
         }
         //else
         return data;
@@ -290,6 +301,7 @@ public class WaveSynthesizer extends Thread {
         try {
             //only dealing with mono audio formats
             //factory has a fromByteArray method - should use that. Use this UniversalAudioInputStream  to make inputstream needed
+            LOGGER.log(Level.INFO, "wsola buffer= " + wsola.getInputBufferSize());
             dispatcher = AudioDispatcherFactory.fromByteArray(source, WavesynConstants.MONO_WAV, wsola.getInputBufferSize(), wsola.getOverlap());
             //dispatcher.setZeroPadLastBuffer(true);
         }
@@ -299,8 +311,10 @@ public class WaveSynthesizer extends Thread {
         }
 
         wsola.setDispatcher(dispatcher);
+        //dispatcher.addAudioProcessor(new FadeIn(0.4d));
         dispatcher.addAudioProcessor(wsola);
         dispatcher.addAudioProcessor(rateTransposer);
+        //dispatcher.addAudioProcessor(new FadeOut(0.4d));
         dispatcher.addAudioProcessor(writer);
         //Dispatcher is a Runnable.
         dispatcher.run();
