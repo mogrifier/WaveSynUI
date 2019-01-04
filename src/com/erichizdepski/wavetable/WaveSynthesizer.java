@@ -135,6 +135,8 @@ public class WaveSynthesizer extends Thread {
         byte[] data = null;
         ByteBuffer pitchShifted = null;
 
+        LOGGER.log(Level.INFO, "called run on the thread again");
+
         try {
             waveStream.connect(outflow); //connecting one half is enough
             //need to make the data repeat if desired
@@ -147,40 +149,50 @@ public class WaveSynthesizer extends Thread {
                 /*
                 would be smart to cache the data unless the wavetable index, scan parameters, or pitch changes
                  */
-                if (changedParameter) {
+                if (changedParameter)
+                {
                     data = generateWaveStream();
                     changedParameter = false;
-                    saveFile(data, "sample1.wav");
+                    LOGGER.log(Level.INFO,"parameter changed");
+                    //AudioHelpers.saveFile(data, "sample1.wav");
                     //outflow.flush();
+                    //if (pitchChanged)
+                    {
+                        //just use the buffersize for crossfades. A little over 0.116 seconds
+                        data = AudioHelpers.crossfadeSample(data, BUFFERSIZE);
+                        LOGGER.log(Level.INFO,"crossfaded");
+                        AudioHelpers.saveFile(data, "crossfade.wav");
+                        //pitchChanged = false;
+                    }
                 }
-                max = data.length / WavesynConstants.BUFFERSIZE;
+
                 //now use the new bytebuffer for playback
 
                 //I used short buffers for writing to allow realtime control of parameters
+                //when pitch changes you get an unusual sized buffer and some it is no longer smooth for looping
+                //so crossfade the whole thing then write it
 
+
+                max = data.length / WavesynConstants.BUFFERSIZE;
                 for (int i = 0; i < (int)max; i++) {
                     //write buffers of data to the player thread
-                    outflow.write(data, i * WavesynConstants.BUFFERSIZE, WavesynConstants.BUFFERSIZE);
+                    outflow.write(data, i * BUFFERSIZE, BUFFERSIZE);
                     if (changedParameter) {
                         break;
                     }
                 }
 
-                //found out ending audio and fade in the beginning.
                 /*
                 if ( data.length % BUFFERSIZE > 0)
                 {
                     int overage = data.length % BUFFERSIZE;
-                    //got extra data = how to interpolate to smooth it out?
-                    byte[] extra = AudioFader.fadeOut(Arrays.copyOfRange(data, 0, overage));
+                    //got extra data. copy the remaining data at end of buffer and fade it out
+                    byte[] extra =  AudioHelpers.fadeOut(Arrays.copyOfRange(data, data.length - overage, data.length));
                     outflow.write(extra);
                     LOGGER.log(Level.INFO, "wrote extra faded audio " + extra.length);
+                    //AudioHelpers.saveFile(extra, "extra.wav");
                 }
                 */
-                //may have to fade in the beginning of the buffer to make smoother
-
-
-
 
             }
         } catch (IOException e) {
@@ -188,19 +200,7 @@ public class WaveSynthesizer extends Thread {
         }
     }
 
-    public void saveFile(byte[] data, String name)
-    {
-        //write data to a file
-        try {
-            FileOutputStream fos = new FileOutputStream(name);
-            fos.write(data);
-            fos.close();
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-    }
+
 
 
     /*
@@ -260,12 +260,14 @@ public class WaveSynthesizer extends Thread {
         //be sure to set to current pitch
         if (pitch != oldPitch) {
             //should only shift pitch if it changed since last time
-            ByteBuffer pitchShifted = ByteBuffer.allocate((int) (data.length * 0.98));
+            ByteBuffer pitchShifted = ByteBuffer.allocate((int) (data.length));
             shiftPitch(data, pitchShifted, pitch);
             pitchChanged = false;
             oldPitch = pitch;
-            saveFile(pitchShifted.array(), "sample0.wav");
+            AudioHelpers.saveFile(pitchShifted.array(), "postpitchpretrim.wav");
+            //AudioHelpers.saveFile(pitchShifted.array(), "sample0.wav");
             return AudioHelpers.trim(pitchShifted.array());
+            //return pitchShifted.array();
         }
         //else
         return data;
@@ -280,7 +282,7 @@ public class WaveSynthesizer extends Thread {
 
 
     public void setPitch(int pitch) {
-        LOGGER.log(Level.INFO, Integer.toString(pitch));
+        LOGGER.log(Level.INFO, "Pitch cents change " + Integer.toString(pitch));
         this.pitch = pitch;
         pitchChanged = true;
         changedParameter = true;
@@ -292,7 +294,7 @@ public class WaveSynthesizer extends Thread {
         double factor = centToFactor(cents);
         RateTransposer rateTransposer = new RateTransposer(factor);
         WaveformSimilarityBasedOverlapAdd wsola =
-                new WaveformSimilarityBasedOverlapAdd(WaveformSimilarityBasedOverlapAdd.Parameters.musicDefaults(factor, WavesynConstants.SAMPLERATE));
+                new WaveformSimilarityBasedOverlapAdd(WaveformSimilarityBasedOverlapAdd.Parameters.musicDefaults(1, WavesynConstants.SAMPLERATE));
 
         //need a new writer since this writes to disk. Can implement own AudioProcessor.
         AudioBufferProcessor writer = new AudioBufferProcessor(target);
@@ -301,9 +303,9 @@ public class WaveSynthesizer extends Thread {
         try {
             //only dealing with mono audio formats
             //factory has a fromByteArray method - should use that. Use this UniversalAudioInputStream  to make inputstream needed
-            LOGGER.log(Level.INFO, "wsola buffer= " + wsola.getInputBufferSize());
-            dispatcher = AudioDispatcherFactory.fromByteArray(source, WavesynConstants.MONO_WAV, wsola.getInputBufferSize(), wsola.getOverlap());
-            //dispatcher.setZeroPadLastBuffer(true);
+            //LOGGER.log(Level.INFO, "wsola buffer= " + wsola.getInputBufferSize());
+            dispatcher = AudioDispatcherFactory.fromByteArray(source, MONO_WAV, wsola.getInputBufferSize(), wsola.getOverlap());
+            dispatcher.setZeroPadLastBuffer(true);
         }
         catch (UnsupportedAudioFileException e)
         {
@@ -311,10 +313,8 @@ public class WaveSynthesizer extends Thread {
         }
 
         wsola.setDispatcher(dispatcher);
-        //dispatcher.addAudioProcessor(new FadeIn(0.4d));
         dispatcher.addAudioProcessor(wsola);
         dispatcher.addAudioProcessor(rateTransposer);
-        //dispatcher.addAudioProcessor(new FadeOut(0.4d));
         dispatcher.addAudioProcessor(writer);
         //Dispatcher is a Runnable.
         dispatcher.run();
