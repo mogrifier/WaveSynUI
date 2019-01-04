@@ -2,16 +2,12 @@ package com.erichizdepski.wavetable;
 
 import be.tarsos.dsp.*;
 import be.tarsos.dsp.io.jvm.AudioDispatcherFactory;
-import be.tarsos.dsp.io.jvm.WaveformWriter;
 import be.tarsos.dsp.resample.RateTransposer;
 import com.erichizdepski.util.*;
 
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -51,9 +47,8 @@ public class WaveSynthesizer extends Thread {
     int scanRate = SCANRATE_DEFAULT;
     //ensure at start up it loads wave data
     boolean changedParameter = true;
-    boolean pitchChanged = false;
-    int pitch = 1;
-    int oldPitch = 1;
+    int desiredPitch = 0;
+    int actualPitch = 0;
     LfoType lfo = LfoType.SAW;
 
     public WaveSynthesizer() throws IOException {
@@ -152,6 +147,8 @@ public class WaveSynthesizer extends Thread {
                 if (changedParameter)
                 {
                     data = generateWaveStream();
+                    //reloading data uses a new, un-pitchshifted sample
+                    actualPitch = 0;
                     changedParameter = false;
                     LOGGER.log(Level.INFO,"parameter changed");
                     //AudioHelpers.saveFile(data, "sample1.wav");
@@ -258,16 +255,14 @@ public class WaveSynthesizer extends Thread {
         bigBuffer.get(data);
 
         //be sure to set to current pitch
-        if (pitch != oldPitch) {
+        if (desiredPitch != actualPitch) {
             //should only shift pitch if it changed since last time
             ByteBuffer pitchShifted = ByteBuffer.allocate((int) (data.length));
-            shiftPitch(data, pitchShifted, pitch);
-            pitchChanged = false;
-            oldPitch = pitch;
+            shiftPitch(data, pitchShifted, desiredPitch);
+            actualPitch = desiredPitch;
+            LOGGER.log(Level.INFO, "shifted pitch");
             AudioHelpers.saveFile(pitchShifted.array(), "postpitchpretrim.wav");
-            //AudioHelpers.saveFile(pitchShifted.array(), "sample0.wav");
             return AudioHelpers.trim(pitchShifted.array());
-            //return pitchShifted.array();
         }
         //else
         return data;
@@ -283,8 +278,7 @@ public class WaveSynthesizer extends Thread {
 
     public void setPitch(int pitch) {
         LOGGER.log(Level.INFO, "Pitch cents change " + Integer.toString(pitch));
-        this.pitch = pitch;
-        pitchChanged = true;
+        desiredPitch = pitch;
         changedParameter = true;
     }
 
