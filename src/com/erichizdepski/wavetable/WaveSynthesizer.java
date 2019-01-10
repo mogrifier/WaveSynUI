@@ -275,7 +275,7 @@ public class WaveSynthesizer extends Thread {
             //else
             //return AudioHelpers.smoothBySlope(AudioHelpers.trim(pitchShifted.array()));
 
-            AudioHelpers.saveFile(AudioHelpers.trim(pitchShifted.array()), "presmoothed.wav");
+            //AudioHelpers.saveFile(AudioHelpers.trim(pitchShifted.array()), "presmoothed.wav");
 
             return AudioHelpers.smoothByCycle(AudioHelpers.trim(pitchShifted.array()));
 

@@ -622,6 +622,8 @@ public class AudioHelpers {
                 midIndex += headCycle.get(i).count;
             }
 
+            //need to save out segments I think are matching
+
             //start to mid index (in bytes) of the head becomes the tail. mid to end of head is new head.
 
             //should just make new array from second half (from alignment start) of head plus main part plus first half of head
@@ -630,15 +632,16 @@ public class AudioHelpers {
             //new start = half way through new head
             //create new tail = first half of new head. put at tail match start
 
-            ByteBuffer buffer = ByteBuffer.allocate(data.length - (tail.length) - startIndex);
+            ByteBuffer buffer = ByteBuffer.allocate(data.length - (tail.length + (startIndex * 2)));
 
-            buffer.put(head, midIndex * 2, head.length - midIndex * 2);
-            buffer.put(data, head.length,  data.length - (4 * WavesynConstants.WAVESAMPLESIZE));
-            buffer.put(head, startIndex * 2, midIndex * 2);
+            //put semantics are not "from- to" but "from, length"
+            buffer.put(head, midIndex * 2, head.length - (midIndex * 2));
+            buffer.put(data, head.length,  data.length - (head.length + tail.length));
+            buffer.put(head, startIndex * 2, (midIndex - startIndex) * 2);
 
             //use data on the match to compute new buffer. it is a sample start so multiply by 2.
             LOGGER.log(Level.INFO, "found cycle pattern match");
-            saveFile(buffer.array(), "extremasmpoothed.wav");
+            saveFile(buffer.array(), "cyclesmoothed.wav");
 
             return buffer.array();
         }
