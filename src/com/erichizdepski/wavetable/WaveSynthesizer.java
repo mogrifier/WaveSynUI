@@ -8,6 +8,7 @@ import com.erichizdepski.util.*;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -81,7 +82,7 @@ public class WaveSynthesizer extends Thread {
     public void setWavetableIndex(int wavetableIndex) {
         this.wavetableIndex = wavetableIndex;
 
-        LOGGER.log(Level.INFO, "new wavetable index: " + this.wavetableIndex);
+        //LOGGER.log(Level.INFO, "new wavetable index: " + this.wavetableIndex);
         changedParameter = true;
     }
 
@@ -92,7 +93,7 @@ public class WaveSynthesizer extends Thread {
 
     public void setStartIndex(int startIndex) {
         this.startIndex = startIndex;
-        LOGGER.log(Level.INFO, "new start index: " + this.startIndex);
+        //LOGGER.log(Level.INFO, "new start index: " + this.startIndex);
         changedParameter = true;
     }
 
@@ -102,7 +103,7 @@ public class WaveSynthesizer extends Thread {
 
     public void setStopIndex(int stopIndex) {
         this.stopIndex = stopIndex;
-        LOGGER.log(Level.INFO, "new stop index: " + this.stopIndex);
+        //LOGGER.log(Level.INFO, "new stop index: " + this.stopIndex);
         changedParameter = true;
     }
 
@@ -112,7 +113,7 @@ public class WaveSynthesizer extends Thread {
 
     public void setScanRate(int scanRate) {
         this.scanRate = scanRate;
-        LOGGER.log(Level.INFO, "new scan rate: " + this.scanRate);
+        //LOGGER.log(Level.INFO, "new scan rate: " + this.scanRate);
         changedParameter = true;
     }
 
@@ -128,9 +129,6 @@ public class WaveSynthesizer extends Thread {
     public void run() {
         //any data written to waveStream will cause audio playback
         byte[] data = null;
-        ByteBuffer pitchShifted = null;
-
-        LOGGER.log(Level.INFO, "called run on the thread again");
 
         try {
             waveStream.connect(outflow); //connecting one half is enough
@@ -151,9 +149,11 @@ public class WaveSynthesizer extends Thread {
                     actualPitch = 0;
                     changedParameter = false;
                     LOGGER.log(Level.INFO,"parameter changed");
-                    //AudioHelpers.saveFile(data, "sample1.wav");
+                    //AudioHelpers.saveFile(data, "audio.wav");
                     //outflow.flush();
                     //if (pitchChanged)
+
+                    /*
                     {
                         //just use the buffersize for crossfades. A little over 0.116 seconds
                         data = AudioHelpers.crossfadeSample(data, BUFFERSIZE);
@@ -161,6 +161,7 @@ public class WaveSynthesizer extends Thread {
                         AudioHelpers.saveFile(data, "crossfade.wav");
                         //pitchChanged = false;
                     }
+                    */
                 }
 
                 //now use the new bytebuffer for playback
@@ -169,6 +170,7 @@ public class WaveSynthesizer extends Thread {
                 //when pitch changes you get an unusual sized buffer and some it is no longer smooth for looping
                 //so crossfade the whole thing then write it
 
+                //I think there is a better way to write the whole buffer and make it smooth. this seems contrived.
 
                 max = data.length / WavesynConstants.BUFFERSIZE;
                 for (int i = 0; i < (int)max; i++) {
@@ -179,17 +181,17 @@ public class WaveSynthesizer extends Thread {
                     }
                 }
 
-                /*
+                //need to ensure this is proper length and even byte aligned. how?
                 if ( data.length % BUFFERSIZE > 0)
                 {
                     int overage = data.length % BUFFERSIZE;
                     //got extra data. copy the remaining data at end of buffer and fade it out
-                    byte[] extra =  AudioHelpers.fadeOut(Arrays.copyOfRange(data, data.length - overage, data.length));
+                    byte[] extra =  Arrays.copyOfRange(data, data.length - overage, data.length);   // AudioHelpers.fadeOut(Arrays.copyOfRange(data, data.length - overage, data.length));
                     outflow.write(extra);
-                    LOGGER.log(Level.INFO, "wrote extra faded audio " + extra.length);
+                    //LOGGER.log(Level.INFO, "wrote extra faded audio " + extra.length);
                     //AudioHelpers.saveFile(extra, "extra.wav");
                 }
-                */
+
 
             }
         } catch (IOException e) {
@@ -260,9 +262,23 @@ public class WaveSynthesizer extends Thread {
             ByteBuffer pitchShifted = ByteBuffer.allocate((int) (data.length));
             shiftPitch(data, pitchShifted, desiredPitch);
             actualPitch = desiredPitch;
-            LOGGER.log(Level.INFO, "shifted pitch");
-            AudioHelpers.saveFile(pitchShifted.array(), "postpitchpretrim.wav");
-            return AudioHelpers.trim(pitchShifted.array());
+            //LOGGER.log(Level.INFO, "shifted pitch");
+
+            //pitch shifting induces a string of zero byte values (about 100 bytes) wide near end of first buffer (4-5000 bytes)
+
+            if (lfo == LfoType.SAW)
+            {
+                //no smoothing used
+                return AudioHelpers.trim(pitchShifted.array());
+            }
+
+            //else
+            //return AudioHelpers.smoothBySlope(AudioHelpers.trim(pitchShifted.array()));
+
+            AudioHelpers.saveFile(AudioHelpers.trim(pitchShifted.array()), "presmoothed.wav");
+
+            return AudioHelpers.smoothByCycle(AudioHelpers.trim(pitchShifted.array()));
+
         }
         //else
         return data;
@@ -277,7 +293,7 @@ public class WaveSynthesizer extends Thread {
 
 
     public void setPitch(int pitch) {
-        LOGGER.log(Level.INFO, "Pitch cents change " + Integer.toString(pitch));
+        //LOGGER.log(Level.INFO, "Pitch cents change " + Integer.toString(pitch));
         desiredPitch = pitch;
         changedParameter = true;
     }
@@ -312,6 +328,7 @@ public class WaveSynthesizer extends Thread {
         dispatcher.addAudioProcessor(writer);
         //Dispatcher is a Runnable.
         dispatcher.run();
+
     }
 
 

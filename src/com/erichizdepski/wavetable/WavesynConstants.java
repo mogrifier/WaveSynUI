@@ -26,4 +26,7 @@ public class WavesynConstants {
     public static final int STOPINDEX_DEFAULT = 20;
     public static final int STARTINDEX_DEFAULT = 0;
     public static final int SCANRATE_DEFAULT = 20;
+
+    //for waveform alignement
+    public static final int FUZZINESS = 10;
 }

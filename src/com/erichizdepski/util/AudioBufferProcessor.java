@@ -32,11 +32,10 @@ public class AudioBufferProcessor implements AudioProcessor {
         {
             //re-allocate. This prevents a buffer overflow crash, but still have some clicking.
             ByteBuffer bigger = ByteBuffer.allocate(audioLen);
-            LOGGER.log(Level.INFO, "reallocating");
+            LOGGER.log(Level.INFO, "************************ reallocating ***************************");
             bigger.put(output);
             output = bigger;
         }
-
         output.put(audioEvent.getByteBuffer());
         return true;
     }
