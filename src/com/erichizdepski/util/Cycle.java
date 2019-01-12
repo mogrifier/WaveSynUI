@@ -60,10 +60,10 @@ public class Cycle {
 
             //LOGGER.log(Level.INFO, "********************************************* comparing " + one.amplitude + " and " + two.amplitude);
 
-            if (Math.abs(one.count - two.count) < WavesynConstants.FUZZINESS)
+            if (Math.abs(one.count - two.count) <= WavesynConstants.FUZZINESS)
             {
                 //LOGGER.log(Level.INFO, " comparing " + one.amplitude + " and " + two.amplitude);
-                LOGGER.log(Level.INFO, "count and type match");
+                //LOGGER.log(Level.INFO, "count and type match");
                 //got a match
                 return true;
             }

@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static com.erichizdepski.wavetable.WavesynConstants.MINMAATCHPERCENT;
+import static com.erichizdepski.wavetable.WavesynConstants.MINMATCH;
+
 public class AudioHelpers {
 
     private final static Logger LOGGER = Logger.getLogger(AudioHelpers.class.getName());
@@ -101,6 +104,26 @@ public class AudioHelpers {
 
         //found if only shifting 100 cents that gap reappears in location > buffersize. grr. Added 1000 to compensate.
 
+        //TODO max scan rate bug. reproducible on about any voice.  java.lang.IllegalArgumentException: 6120 > 4596
+        /*
+
+
+            copyOfRange(byte[] original, int from, int to)
+            Copies the specified range of the specified array into a new array.
+         */
+
+        saveFile(data, "pretrim.wav");
+
+        /*
+        when scan rate goes high, data length gets low and can be shorter than WavesynConstants.BUFFERSIZE + 1000.
+        This causes an error. Could scale this down since it changes linearly with scan range.
+         */
+
+        if (WavesynConstants.BUFFERSIZE + 1000 > trailIndex || data.length < 4 * WavesynConstants.BUFFERSIZE )
+        {
+            //avoid this crash
+            return Arrays.copyOfRange(data, 0, trailIndex);
+        }
 
         return Arrays.copyOfRange(data, WavesynConstants.BUFFERSIZE + 1000, trailIndex);
     }
@@ -315,9 +338,6 @@ public class AudioHelpers {
         {
             //LOGGER.log(Level.INFO, "transition value=" + transitionValue + "  versus " + getInt(data[index], data[index + 1]));
 
-
-            //TODO match the phase- not just the value. could be 180 out or whatever if complex wave
-
             if (Math.abs(buffer[index] - transitionValue) < 300)
             {
 
@@ -491,43 +511,18 @@ public class AudioHelpers {
     public static byte[] smoothByCycle(byte[] data)
     {
         //just want to match the end and the front of the audio samples, no more than 512 bytes
+        if (data.length < 4 * WavesynConstants.WAVESAMPLESIZE)
+        {
+            //algorithm won't work so do this to avoid crash.
+            return data;
+        }
+
         byte[] head = Arrays.copyOfRange(data, 0, 2 * WavesynConstants.WAVESAMPLESIZE);
         byte[] tail = Arrays.copyOfRange(data, data.length - (2 * WavesynConstants.WAVESAMPLESIZE), data.length);
 
         List<Cycle> headCycle = getCycleInfo(head);
         List<Cycle> tailCycle = getCycleInfo(tail);
 
-        System.out.println(headCycle);
-        System.out.println(tailCycle);
-
-        //List<Extrema> headExtrema = getExtema(head);
-        //List<Extrema> tailExtrema = getExtema(tail);
-
-        //int[] headRelative = Extrema.getExtremaRelativePosition(headExtrema);
-        //int[] tailRelative = Extrema.getExtremaRelativePosition(tailExtrema);
-
-        //System.out.println(Arrays.toString(headRelative));
-        //System.out.println(Arrays.toString(tailRelative));
-
-
-        //no reason to print but for debug
-        System.out.println(Arrays.toString(getAudioAmplitude(head)));
-        System.out.println(Arrays.toString(getAudioAmplitude((tail))));
-
-
-        /*
-        LOGGER.log(Level.INFO, "******* head *********");
-        for (int i = 0; i < headExtrema.size(); i++)
-        {
-            //LOGGER.log(Level.INFO, headExtrema.get(i).toString());
-        }
-
-        LOGGER.log(Level.INFO, "******* tail *********");
-        for (int i = 0; i < tailExtrema.size(); i++)
-        {
-            //LOGGER.log(Level.INFO, tailExtrema.get(i).toString());
-        }
-        */
         //need to be fuzzy when comparing. I think fine to just look at amplitude of extrema and type call it +/- 10?? for fuzz
         //now use the extrema arrays to align the waveforms into a match. Can use the relative difference of index values
         // to create a map for matching
@@ -569,7 +564,7 @@ public class AudioHelpers {
                     }
 
                     //if many points in a row match, call it found
-                    if (matchCount > 8 || matchCount > 0.4 * headCycle.size())
+                    if (matchCount > MINMATCH || matchCount > MINMAATCHPERCENT * headCycle.size())
                     {
                         //enough?
                         found = true;
@@ -595,6 +590,7 @@ public class AudioHelpers {
 
         if (found)
         {
+            LOGGER.log(Level.INFO, "found cycle pattern; match count = " + matchCount);
             /*
             This means the tail aligns to head from headMatchStart. But to align the tail and head smoothly means we need
             to cut off part of the tail and have its neew ending match a starting point in the head. The cut point is
@@ -607,40 +603,59 @@ public class AudioHelpers {
 
             //sum the cycle count values (up to current) to get the needed index
 
-
             //need three values start to ouro to end
             int startIndex = 0;
-            int midIndex = 0;
+            int endIndex = 0;
+            int ouroIndex = 0;
 
+            //this computes how many samples into the head the alignment begins. can be zero.
             for (int i = 0; i < headMatchStart; i++)
             {
                 startIndex += headCycle.get(i).count;
             }
 
-            for (int i = ouroborous; i < headCycle.size(); i++)
+            //this is where the cur occurs in the head
+            for (int i = 0; i < (headMatchStart + ouroborous); i++)
             {
-                midIndex += headCycle.get(i).count;
+                ouroIndex += headCycle.get(i).count;
             }
 
-            //need to save out segments I think are matching
+            //don't know why but must add one fix a discontinuity. I must be counting wrong.
+            tailMatchStart += 1;
 
-            //start to mid index (in bytes) of the head becomes the tail. mid to end of head is new head.
-
-            //should just make new array from second half (from alignment start) of head plus main part plus first half of head
+            //this computes how many samples into the tail the alignment begins. can be zero.
+            for (int i = 0; i < tailMatchStart; i++)
+            {
+                endIndex += tailCycle.get(i).count;
+            }
 
             //create new head = alignment start to end of head
             //new start = half way through new head
             //create new tail = first half of new head. put at tail match start
 
-            ByteBuffer buffer = ByteBuffer.allocate(data.length - (tail.length + (startIndex * 2)));
+
+            //TODO I don't necessarily have the only/best match. I have First Match.
+            //can cause minor discontinuity due to the mismatch?? occurs at boundary where new tail is attached.
+            //could attempt to move through, comparing amplitudes, until match found. Will be within 40 samples.
+            //looks like a dimple or sometimes a small vertical line if really close.
+
+            //compute length of last new tail
+            int newTailLength = (ouroIndex - startIndex) * 2;
+
+            //need to use tailMatchStart (endIndex) and adjust buffer length and where the new tail is added.
+            //compute buffer size form the length of the 3 parts.
+            int size = (head.length - (ouroIndex * 2))
+                    + ((data.length + (endIndex * 2)) - (head.length + tail.length) )
+                    + newTailLength;
+            ByteBuffer buffer = ByteBuffer.allocate(size);
+                    //ByteBuffer.allocate((data.length + (endIndex * 2)) - (tail.length + (startIndex * 2)));
 
             //put semantics are not "from- to" but "from, length"
-            buffer.put(head, midIndex * 2, head.length - (midIndex * 2));
-            buffer.put(data, head.length,  data.length - (head.length + tail.length));
-            buffer.put(head, startIndex * 2, (midIndex - startIndex) * 2);
-
-            //use data on the match to compute new buffer. it is a sample start so multiply by 2.
-            LOGGER.log(Level.INFO, "found cycle pattern match");
+            buffer.put(head, ouroIndex * 2, (head.length - (ouroIndex * 2)));
+            //ensure some of the tail is used in the tailMatchStart (and endIndex) are > 0
+            buffer.put(data, head.length,  (data.length + (endIndex * 2)) - (head.length + tail.length));
+            buffer.put(head, startIndex * 2, newTailLength);
+            LOGGER.log(Level.INFO, "length of new tail = " + newTailLength + " tail match start = " + tailMatchStart);
             saveFile(buffer.array(), "cyclesmoothed.wav");
 
             return buffer.array();

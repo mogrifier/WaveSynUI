@@ -206,7 +206,7 @@ public class WaveSynthesizer extends Thread {
    Creates a stream of audio data using wavtables.
     */
     public byte[] generateWaveStream() {
-        ByteBuffer bigBuffer = ByteBuffer.allocate(5000 * 32768);
+        ByteBuffer bigBuffer = ByteBuffer.allocate(MAXSIZE); //10MB looks good
         byte[] data = new byte[1];
         byte[] sample;
 
@@ -253,6 +253,7 @@ public class WaveSynthesizer extends Thread {
         }
 
         data = new byte[bigBuffer.position()];
+        LOGGER.log(Level.INFO, "audio length = " + data.length + " original buffer length = " + MAXSIZE);
         bigBuffer.rewind();
         bigBuffer.get(data);
 
