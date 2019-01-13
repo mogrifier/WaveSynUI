@@ -42,7 +42,7 @@ public class WaveSynthesizer extends Thread {
     List<String> files = null;
     List<ByteBuffer> tables = null;
     boolean alive = false;
-    int wavetableIndex = 0;
+    int wavetableIndex = TABLEINDEX_DEFAULT;
     int startIndex = STARTINDEX_DEFAULT;
     int stopIndex = STOPINDEX_DEFAULT;
     int scanRate = SCANRATE_DEFAULT;
@@ -51,6 +51,8 @@ public class WaveSynthesizer extends Thread {
     int desiredPitch = 0;
     int actualPitch = 0;
     LfoType lfo = LfoType.SAW;
+    //patch handling
+    PatchList patches;
 
     public WaveSynthesizer() throws IOException {
         TableLoader loader = new TableLoader();
@@ -61,11 +63,29 @@ public class WaveSynthesizer extends Thread {
         //load the wavetables for each file name
         tables = loader.loadTables(files);
 
+        patches = new PatchList(50);
+
         //setup the pipes for audio generation and playback.
         outflow = new PipedOutputStream();
         waveStream = new PipedInputStream();
     }
 
+    public List<String> getPatchNames() {
+
+        return patches.getPatchNames();
+    }
+
+    public void savePatch(int start, int stop, int rate, int index, LfoType type, String name) {
+        //delegate to patch and patchlist classes
+        //LOGGER.log(Level.INFO, "saving the patch");
+        patches.savePatch (new WavePatch(start, stop, rate, index, type, name));
+    }
+
+
+    public WavePatch getPatch(int index)
+    {
+        return patches.getPatch(index);
+    }
 
     public void setAlive(boolean alive) {
         this.alive = alive;
@@ -150,18 +170,6 @@ public class WaveSynthesizer extends Thread {
                     changedParameter = false;
                     LOGGER.log(Level.INFO,"parameter changed");
                     //AudioHelpers.saveFile(data, "audio.wav");
-                    //outflow.flush();
-                    //if (pitchChanged)
-
-                    /*
-                    {
-                        //just use the buffersize for crossfades. A little over 0.116 seconds
-                        data = AudioHelpers.crossfadeSample(data, BUFFERSIZE);
-                        LOGGER.log(Level.INFO,"crossfaded");
-                        AudioHelpers.saveFile(data, "crossfade.wav");
-                        //pitchChanged = false;
-                    }
-                    */
                 }
 
                 //now use the new bytebuffer for playback

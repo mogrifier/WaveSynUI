@@ -99,31 +99,17 @@ public class AudioHelpers {
             }
         }
 
+
+        if (WavesynConstants.BUFFERSIZE + 1000 > trailIndex || data.length < 4 * WavesynConstants.BUFFERSIZE )
+        {
+            //avoid this crash. Not that the gap will still be present but this condition sounds bad anyway. rare.
+            return Arrays.copyOfRange(data, 0, trailIndex);
+        }
+
         //skipping first buffer do to garbage (on mac) when pitchshift <= 700 cents.
         //no need for gap removal since gap part is cut out
 
         //found if only shifting 100 cents that gap reappears in location > buffersize. grr. Added 1000 to compensate.
-
-        //TODO max scan rate bug. reproducible on about any voice.  java.lang.IllegalArgumentException: 6120 > 4596
-        /*
-
-
-            copyOfRange(byte[] original, int from, int to)
-            Copies the specified range of the specified array into a new array.
-         */
-
-        saveFile(data, "pretrim.wav");
-
-        /*
-        when scan rate goes high, data length gets low and can be shorter than WavesynConstants.BUFFERSIZE + 1000.
-        This causes an error. Could scale this down since it changes linearly with scan range.
-         */
-
-        if (WavesynConstants.BUFFERSIZE + 1000 > trailIndex || data.length < 4 * WavesynConstants.BUFFERSIZE )
-        {
-            //avoid this crash
-            return Arrays.copyOfRange(data, 0, trailIndex);
-        }
 
         return Arrays.copyOfRange(data, WavesynConstants.BUFFERSIZE + 1000, trailIndex);
     }
@@ -554,7 +540,7 @@ public class AudioHelpers {
 
                 if (match)
                 {
-                    LOGGER.log(Level.INFO, "MATCH tail at " + (i) + " with head at " + j);
+                    //LOGGER.log(Level.INFO, "MATCH tail at " + (i) + " with head at " + j);
 
                     matchCount ++;
                     if (firstMatch)

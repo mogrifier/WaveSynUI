@@ -27,11 +27,23 @@ public class WavesynConstants {
 
     public static final int STOPINDEX_DEFAULT = 20;
     public static final int STARTINDEX_DEFAULT = 0;
-    public static final int SCANRATE_DEFAULT = 20;
+    public static final int SCANRATE_DEFAULT = 50;
+    public static final int TABLEINDEX_DEFAULT = 55;
 
     //for waveform alignement
     public static final int FUZZINESS = 3;
     public static final int MINMATCH = 12;
 
     public static final float MINMAATCHPERCENT = 0.4f;
+
+    //patch storage
+    public static final String PATCHFILE = "wavesynpatches.json";
+
+    //scan rate
+    public static final int MAXSCAN = 96;
+
+    //patch dialog
+    public static final String PATCHDIALOGTITLE = "Save Patch";
+    public static final String PATCHNAME= "Enter a patch name or use default value";
+
 }

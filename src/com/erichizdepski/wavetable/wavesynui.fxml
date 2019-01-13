@@ -2,6 +2,7 @@
 
 <?import java.lang.String?>
 <?import javafx.collections.FXCollections?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ChoiceBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Slider?>
@@ -9,11 +10,11 @@
 <?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane prefHeight="400.0" prefWidth="740.0" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.erichizdepski.wavetable.Controller">
+<AnchorPane prefHeight="474.0" prefWidth="740.0" xmlns="http://javafx.com/javafx/8.0.121" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.erichizdepski.wavetable.Controller">
    <children>
       <Label layoutX="21.0" layoutY="170.0" text="Select Wavetable" />
       <ChoiceBox fx:id="wavetableSelect" layoutX="21.0" layoutY="187.0" prefWidth="150.0" />
-      <Label layoutX="21.0" layoutY="246.0" text="Select LFO Type" />
+      <Label layoutX="24.0" layoutY="400.0" text="Select Patch" />
       <ChoiceBox fx:id="lfoType" layoutX="21.0" layoutY="263.0" prefWidth="150.0">
          <items>
             <FXCollections fx:factory="observableArrayList">
@@ -23,25 +24,29 @@
             </FXCollections>
          </items>
       </ChoiceBox>
-      <Slider fx:id="startIndex" blockIncrement="4.0" layoutX="204.0" layoutY="193.0" majorTickUnit="16.0" max="63.0" minorTickCount="4" prefHeight="26.0" prefWidth="399.0" showTickMarks="true">
+      <Slider fx:id="startIndex" blockIncrement="1.0" layoutX="204.0" layoutY="193.0" majorTickUnit="16.0" max="63.0" minorTickCount="4" prefHeight="26.0" prefWidth="399.0" showTickMarks="true">
       <tooltip>
          <Tooltip text="min index in table for the scan" />
       </tooltip>
       </Slider>
-      <Slider fx:id="stopIndex" blockIncrement="4.0" layoutX="204.0" layoutY="269.0" majorTickUnit="16.0" max="63.0" minorTickCount="4" prefHeight="26.0" prefWidth="399.0" showTickMarks="true">
+      <Slider fx:id="stopIndex" blockIncrement="1.0" layoutX="204.0" layoutY="269.0" majorTickUnit="16.0" max="63.0" minorTickCount="4" prefHeight="26.0" prefWidth="399.0" showTickMarks="true">
       <tooltip>
          <Tooltip text="max index in table for the scan" />
       </tooltip>
       </Slider>
       <Label layoutX="224.0" layoutY="170.0" text="Start Index" />
       <Label layoutX="224.0" layoutY="246.0" text="Stop Index" />
-      <Slider fx:id="scanRate" blockIncrement="5.0" layoutX="659.0" layoutY="185.0" max="95.0" orientation="VERTICAL" prefHeight="196.0" prefWidth="24.0" showTickMarks="true">
+      <Slider fx:id="scanRate" blockIncrement="1.0" layoutX="659.0" layoutY="185.0" max="95.0" orientation="VERTICAL" prefHeight="196.0" prefWidth="24.0" showTickMarks="true">
       <tooltip>
          <Tooltip text="Change the number of sample repeats; lower means faster cycle" />
       </tooltip>
       </Slider>
       <Label layoutX="619.0" layoutY="170.0" text="Table Scan Rate" />
       <TextArea layoutX="21.0" layoutY="18.0" prefHeight="108.0" prefWidth="700.0" text="Wavetable scanning is the process of choosing start and stop indexes within a wavetable and building up a waveform created by adding the different samples in the table in order from start to stop, under control of an &quot;LFO&quot;. The scan rate (like LFO rate) controls how many times each sample repeats. The LFO Type selects if and how the scanning goes forward or forward and backward through the range of indices. Saw goes forward only. Triangle and Sine go forward and backward." wrapText="true" />
-      <Slider fx:id="pitchSlider" blockIncrement="0.0" layoutX="26.0" layoutY="349.0" majorTickUnit="100.0" max="3000.0" minorTickCount="0" prefHeight="14.0" prefWidth="562.0" showTickMarks="true" snapToTicks="true" />
+      <Slider fx:id="pitchSlider" blockIncrement="0.0" layoutX="26.0" layoutY="344.0" majorTickUnit="100.0" max="3000.0" minorTickCount="0" prefHeight="14.0" prefWidth="562.0" showTickMarks="true" snapToTicks="true" />
+      <Label layoutX="21.0" layoutY="246.0" text="Select LFO Type" />
+      <Label layoutX="21.0" layoutY="327.0" text="Pitch" />
+      <ChoiceBox fx:id="patchSelect" layoutX="20.0" layoutY="417.0" prefHeight="27.0" prefWidth="203.0" />
+      <Button fx:id="savePatch" layoutX="257.0" layoutY="417.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="107.0" text="Save Patch" />
    </children>
 </AnchorPane>

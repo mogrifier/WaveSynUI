@@ -19,7 +19,7 @@ public class Main extends Application {
         AnchorPane root = (AnchorPane)loader.load();
 
         primaryStage.setTitle("Wavesyn");
-        primaryStage.setScene(new Scene(root, 740, 400));
+        primaryStage.setScene(new Scene(root, 740, 474));
         primaryStage.show();
         controls = loader.getController();
     }
@@ -37,6 +37,7 @@ public class Main extends Application {
             System.out.println("synth failed to hutdown");
         }
 
+        //patches are saved each time you make a patch
         Platform.exit();
         System.exit(0);
     }
