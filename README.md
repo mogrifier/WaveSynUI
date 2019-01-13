@@ -1,12 +1,17 @@
 # WaveSynUI
 
-This is a software synthesizer modeled after the famous PPG. It is a true wavetable synth- it scans a table full of short audio samples, adding them to an audio buiffer as it goes, then plays the buffer. 
+This is a software synthesizer modeled after the famous PPG. It is a true wavetable synth- it scans a table full of short audio samples, adding them to an audio buffer as it goes, then plays the buffer. 
 
 Features
 - 125 wavetables of 64 512 byte samples each from https://waveeditonline.com/
 - 16 bit, 44.1khz audio
 - monophonic
 - 30 notes (but planning to add 4 more octaves)
+- save and load patches
+- select wavetable index scan start/stop points
+- select wavetable scanrate and shape (like an LFO)
+- for test purposes you can select the pitch (1 half step- 100 cents) intervals)
+- root pitch is a D
 
 There are no effects or envelopes, since this is meant to be played through other synthesizers that can accept and manipulate an external audio source. For example, a Moog Sub 37 can mix in external audio, and apply its great filter, amplitude/filter envelopes, arpeggiator, etc. to the external sound.
 
