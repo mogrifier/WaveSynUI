@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.erichizdepski.wavetable.WavesynConstants.MINMAATCHPERCENT;
+import static com.erichizdepski.wavetable.WavesynConstants.MINMATCHPERCENT;
 import static com.erichizdepski.wavetable.WavesynConstants.MINMATCH;
 
 public class AudioHelpers {
@@ -550,7 +550,7 @@ public class AudioHelpers {
                     }
 
                     //if many points in a row match, call it found
-                    if (matchCount > MINMATCH || matchCount > MINMAATCHPERCENT * headCycle.size())
+                    if (matchCount > MINMATCH || matchCount > MINMATCHPERCENT * headCycle.size())
                     {
                         //enough?
                         found = true;

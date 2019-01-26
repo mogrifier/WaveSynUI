@@ -9,7 +9,9 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,6 +55,10 @@ public class WaveSynthesizer extends Thread {
     LfoType lfo = LfoType.SAW;
     //patch handling
     PatchList patches;
+
+    Map<String, ByteBuffer> patchHash = new HashMap<>(4000);
+
+
 
     public WaveSynthesizer() throws IOException {
         TableLoader loader = new TableLoader();
@@ -164,7 +170,18 @@ public class WaveSynthesizer extends Thread {
                  */
                 if (changedParameter)
                 {
-                    data = generateWaveStream();
+                    //check cache
+                    if (patchHash.containsKey(getHash(getPitch())))
+                    {
+                        //use cached value
+                        data = patchHash.get(getHash(getPitch())).array();
+                    }
+                    else
+                    {
+                        //note- am only caching when you save a patch.
+                        data = generateWaveStream();
+                    }
+
                     //reloading data uses a new, un-pitchshifted sample
                     actualPitch = 0;
                     changedParameter = false;
@@ -175,10 +192,8 @@ public class WaveSynthesizer extends Thread {
                 //now use the new bytebuffer for playback
 
                 //I used short buffers for writing to allow realtime control of parameters
-                //when pitch changes you get an unusual sized buffer and some it is no longer smooth for looping
-                //so crossfade the whole thing then write it
-
-                //I think there is a better way to write the whole buffer and make it smooth. this seems contrived.
+                //when pitch changes you get an unusual sized buffer and some it is no longer smooth for looping so
+                //must be fixed.
 
                 max = data.length / WavesynConstants.BUFFERSIZE;
                 for (int i = 0; i < (int)max; i++) {
@@ -199,7 +214,6 @@ public class WaveSynthesizer extends Thread {
                     //LOGGER.log(Level.INFO, "wrote extra faded audio " + extra.length);
                     //AudioHelpers.saveFile(extra, "extra.wav");
                 }
-
 
             }
         } catch (IOException e) {
@@ -294,6 +308,42 @@ public class WaveSynthesizer extends Thread {
     }
 
 
+
+    /*
+    Generate a wave form for every note in a patch. Store in a hash table.
+     */
+    public void cacheNotesForPatch()
+    {
+        //save current pitch and restore to keep ui in sync with backing values
+        int currentPitch = getPitch();
+
+        //just doing 30 notes for now. remember, it is a pitch differential. '0' is really D3 I think.
+        int notes = MAXPITCH/100 + 1;
+
+        for (int i = 0; i < notes; i++)
+        {
+            setPitch(i * 100);
+            ByteBuffer pitch = ByteBuffer.wrap(generateWaveStream());
+            //cache the pitch using a hash of pitch and patch
+            patchHash.put(getHash(i*100), pitch);
+        }
+
+        //restore pitch
+        setPitch(currentPitch);
+    }
+
+
+    private String getHash(int pitch)
+    {
+        //use current patch settings int start, int stop, int rate, int index, LfoType type, in hash
+        //plus the pitch to keep unique. colons prevent chance of collision. Example 1 15 22 is same as 11 52 2 without :
+
+        String hash = String.valueOf(getStartIndex()) + ":" + String.valueOf(getStopIndex()) + ":" + String.valueOf(getScanRate())
+                + ":" + String.valueOf(getWavetableIndex()) + ":" + lfo.getLfoType() + ":" + String.valueOf(pitch);
+        return hash;
+    }
+
+
     public void setLfoType(String selectedLfo) {
         //use enumeration to match string name.
         lfo = LfoType.valueOf(selectedLfo);
@@ -305,6 +355,12 @@ public class WaveSynthesizer extends Thread {
         //LOGGER.log(Level.INFO, "Pitch cents change " + Integer.toString(pitch));
         desiredPitch = pitch;
         changedParameter = true;
+    }
+
+
+    public int getPitch()
+    {
+        return desiredPitch;
     }
 
     private void shiftPitch(byte[] source, ByteBuffer target, double cents) {

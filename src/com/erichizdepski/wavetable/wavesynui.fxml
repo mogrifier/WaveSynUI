@@ -47,6 +47,6 @@
       <Label layoutX="21.0" layoutY="246.0" text="Select LFO Type" />
       <Label layoutX="21.0" layoutY="327.0" text="Pitch" />
       <ChoiceBox fx:id="patchSelect" layoutX="20.0" layoutY="417.0" prefHeight="27.0" prefWidth="203.0" />
-      <Button fx:id="savePatch" layoutX="257.0" layoutY="417.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="107.0" text="Save Patch" />
+      <Button fx:id="savePatch" layoutX="257.0" layoutY="417.0" mnemonicParsing="false" prefHeight="27.0" prefWidth="209.0" text="Save and Cache Patch" />
    </children>
 </AnchorPane>

@@ -34,13 +34,17 @@ public class WavesynConstants {
     public static final int FUZZINESS = 3;
     public static final int MINMATCH = 12;
 
-    public static final float MINMAATCHPERCENT = 0.4f;
+    public static final float MINMATCHPERCENT = 0.4f;
 
     //patch storage
     public static final String PATCHFILE = "wavesynpatches.json";
 
     //scan rate
     public static final int MAXSCAN = 96;
+
+    //pitch range max in cents
+    //TODO change if expanding lower octave range- can go down two easily
+    public static final int MAXPITCH = 3000;
 
     //patch dialog
     public static final String PATCHDIALOGTITLE = "Save Patch";

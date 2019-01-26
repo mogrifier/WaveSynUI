@@ -153,6 +153,10 @@ public class Controller {
                 syncUIWithPatch(new WavePatch((int)startIndex.getValue(), (int)stopIndex.getValue(), (int)scanRate.getValue(),
                         wavetableSelect.getSelectionModel().getSelectedIndex(),
                         WaveSynthesizer.LfoType.valueOf(lfoType.getSelectionModel().getSelectedItem()), entered));
+
+                //run through all notes for patch and cache them
+                synth.cacheNotesForPatch();
+
             });
 
             //pitch control test
