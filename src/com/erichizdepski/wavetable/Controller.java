@@ -141,7 +141,7 @@ public class Controller {
                 }
 
                 //get the enum type for the lfo
-               synth.savePatch((int)startIndex.getValue(), (int)stopIndex.getValue(), (int)scanRate.getValue(),
+               synth.savePatch((int)startIndex.getValue(), (int)stopIndex.getValue(), (int)(MAXSCAN - scanRate.getValue()),
                        wavetableSelect.getSelectionModel().getSelectedIndex(),
                        WaveSynthesizer.LfoType.valueOf(lfoType.getSelectionModel().getSelectedItem()), entered);
 
