@@ -55,7 +55,7 @@ public class WaveSynthesizer extends Thread {
     LfoType lfo = LfoType.SAW;
     //patch handling
     PatchList patches;
-
+    int patchIndex = -1;
     Map<String, ByteBuffer> patchHash = new HashMap<>(4000);
 
 
@@ -91,6 +91,23 @@ public class WaveSynthesizer extends Thread {
     public WavePatch getPatch(int index)
     {
         return patches.getPatch(index);
+    }
+
+
+    public int getPatchIndex()
+    {
+        return patchIndex;
+    }
+
+    public void setPatchIndex(int patch) {
+        this.patchIndex = patch;
+
+        //check cache
+        if (!patchHash.containsKey(getHash(getPitch())))
+        {
+            //cache patch if not in the cache
+            cacheNotesForPatch();
+        }
     }
 
     public void setAlive(boolean alive) {
@@ -171,21 +188,26 @@ public class WaveSynthesizer extends Thread {
                 if (changedParameter)
                 {
                     //check cache
+                    LOGGER.log(Level.INFO, "checking cache for " + getHash(getPitch()));
                     if (patchHash.containsKey(getHash(getPitch())))
                     {
                         //use cached value
                         data = patchHash.get(getHash(getPitch())).array();
+                        LOGGER.log(Level.INFO, " :) cache hit");
                     }
                     else
                     {
-                        //note- am only caching when you save a patch.
+                        //note- am only caching when you save a patch
+                        //on patch change after restart, the cache is empty, so should cache then, too
                         data = generateWaveStream();
+                        LOGGER.log(Level.INFO, " :( cache miss");
+
                     }
 
                     //reloading data uses a new, un-pitchshifted sample
                     actualPitch = 0;
                     changedParameter = false;
-                    LOGGER.log(Level.INFO,"parameter changed");
+                    //LOGGER.log(Level.INFO,"parameter changed");
                     //AudioHelpers.saveFile(data, "audio.wav");
                 }
 
@@ -275,7 +297,7 @@ public class WaveSynthesizer extends Thread {
         }
 
         data = new byte[bigBuffer.position()];
-        LOGGER.log(Level.INFO, "audio length = " + data.length + " original buffer length = " + MAXSIZE);
+        //LOGGER.log(Level.INFO, "audio length = " + data.length + " original buffer length = " + MAXSIZE);
         bigBuffer.rewind();
         bigBuffer.get(data);
 
@@ -314,6 +336,12 @@ public class WaveSynthesizer extends Thread {
      */
     public void cacheNotesForPatch()
     {
+        //if already in cache return
+        if (patchHash.containsKey(getHash(0)))
+        {
+            return;
+        }
+
         //save current pitch and restore to keep ui in sync with backing values
         int currentPitch = getPitch();
 
@@ -326,10 +354,12 @@ public class WaveSynthesizer extends Thread {
             ByteBuffer pitch = ByteBuffer.wrap(generateWaveStream());
             //cache the pitch using a hash of pitch and patch
             patchHash.put(getHash(i*100), pitch);
+            LOGGER.log(Level.INFO, "caching " + getHash(i*100));
         }
 
         //restore pitch
         setPitch(currentPitch);
+        LOGGER.log(Level.INFO, "cached all notes for " + getPatch(getPatchIndex()).getName());
     }
 
 

@@ -641,7 +641,7 @@ public class AudioHelpers {
             //ensure some of the tail is used in the tailMatchStart (and endIndex) are > 0
             buffer.put(data, head.length,  (data.length + (endIndex * 2)) - (head.length + tail.length));
             buffer.put(head, startIndex * 2, newTailLength);
-            LOGGER.log(Level.INFO, "length of new tail = " + newTailLength + " tail match start = " + tailMatchStart);
+            //LOGGER.log(Level.INFO, "length of new tail = " + newTailLength + " tail match start = " + tailMatchStart);
             saveFile(buffer.array(), "cyclesmoothed.wav");
 
             return buffer.array();

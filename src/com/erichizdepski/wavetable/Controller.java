@@ -96,9 +96,11 @@ public class Controller {
                 }
 
                 //get the patch values by looking up the patch index in synth
+                synth.setPatchIndex(patch);
                 WavePatch selectedPatch = synth.getPatch(patch);
                 //set the values
                 syncUIWithPatch(selectedPatch);
+                synth.cacheNotesForPatch();
             });
 
             // Handle Slider value change events.
