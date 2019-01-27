@@ -23,6 +23,7 @@ public class PipedPlayer extends Thread
     //control data flushing behavior
     boolean discard = false;
     int buffersize = 0;
+    boolean restart = false;
 
 
     public PipedPlayer(PipedInputStream input, int buffersize)
@@ -40,6 +41,7 @@ public class PipedPlayer extends Thread
     public void run()
     {
         alive = true;
+
         //now create a playback piece
         DataLine.Info info = null;
         SourceDataLine line = null;
@@ -57,23 +59,42 @@ public class PipedPlayer extends Thread
 
             while(alive)
             {
-                //this discards any data- but there is still some junk being played.
+                //this stops playback but there is data from old note still in buffer
                 if (discard)
                 {
-                    //line.stop();
-                    line.flush();//??
+                    line.flush();
+                    line.stop();
+                    //TODO there is still audio in the output buffer being played that I can't get rid of. Could try with a
+                    //gain controller to "duck" the stale audio
+                    restart = true;
                 }
                 else
                 {
-                    //line.start();
+                    line.start();
+                    if (restart) {
+                        //just do this once- after note off/on
+                        line.flush();
+                        restart = false;
+                    }
+                    /*
+                    Found an effect- skip bytes is neat. noisy. could add a UI button to turn on off. Other
+                    realtime controls.
+
+                    input.skip(25000);
+                     */
                     length = input.read(buffer);
                     if (length > 0)
                     {
-                        //write to the audio line (most likely BUFFER_SIZE bytes)- this should start playback
+                        //write to the audio line (most likely BUFFER_SIZE bytes)- to start playback
                         line.write(buffer, 0, length);
                     }
                 }
 
+                try {
+                    Thread.sleep(5);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
 
             LOGGER.log(Level.INFO,"player thread no longer alive");

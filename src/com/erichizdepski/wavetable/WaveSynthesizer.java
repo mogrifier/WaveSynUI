@@ -5,22 +5,21 @@ import be.tarsos.dsp.io.jvm.AudioDispatcherFactory;
 import be.tarsos.dsp.resample.RateTransposer;
 import com.erichizdepski.util.*;
 
+import javax.sound.midi.*;
+import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import java.io.*;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static com.erichizdepski.wavetable.WavesynConstants.*;
 
-public class WaveSynthesizer extends Thread {
+public class WaveSynthesizer extends Thread implements Synthesizer {
 
-    public enum LfoType
-    {
+
+    public enum LfoType {
         SAW(LFO_TYPE.get(0)),
         SINE(LFO_TYPE.get(1)),
         TRIANGLE(LFO_TYPE.get(2));
@@ -31,8 +30,7 @@ public class WaveSynthesizer extends Thread {
             this.lfo = lfo;
         }
 
-        public String getLfoType()
-        {
+        public String getLfoType() {
             return lfo;
         }
     }
@@ -40,6 +38,7 @@ public class WaveSynthesizer extends Thread {
     private final static Logger LOGGER = Logger.getLogger(WaveSynthesizer.class.getName());
     PipedOutputStream outflow = null;
     PipedInputStream waveStream = null;
+    PipedPlayer audioPlayer;
     //for loading wave tables
     List<String> files = null;
     List<ByteBuffer> tables = null;
@@ -57,8 +56,15 @@ public class WaveSynthesizer extends Thread {
     PatchList patches;
     int patchIndex = -1;
     Map<String, ByteBuffer> patchHash = new HashMap<>(4000);
+    byte[] zeroBuffer = new byte[BUFFERSIZE];
 
-
+    //MIDI variables
+    Receiver receiver;
+    List<Receiver> receivers;
+    boolean open = false;
+    MidiChannel[] midiChannel;
+    KeyPlayer keyPlayer;
+    boolean alreadyOn = true;
 
     public WaveSynthesizer() throws IOException {
         TableLoader loader = new TableLoader();
@@ -74,6 +80,20 @@ public class WaveSynthesizer extends Thread {
         //setup the pipes for audio generation and playback.
         outflow = new PipedOutputStream();
         waveStream = new PipedInputStream();
+
+        //MIDI setup
+        receiver = new WaveSynReceiver(this);
+        receivers = new ArrayList<>(1);
+        receivers.add(receiver);
+        midiChannel = new WaveSynChannel[1];
+        midiChannel[0] = new WaveSynChannel(this);
+        keyPlayer = new KeyPlayer(midiChannel[0]);
+        keyPlayer.start();
+    }
+
+
+    public void setPlayer(PipedPlayer player) {
+        this.audioPlayer = player;
     }
 
     public List<String> getPatchNames() {
@@ -84,18 +104,16 @@ public class WaveSynthesizer extends Thread {
     public void savePatch(int start, int stop, int rate, int index, LfoType type, String name) {
         //delegate to patch and patchlist classes
         //LOGGER.log(Level.INFO, "saving the patch");
-        patches.savePatch (new WavePatch(start, stop, rate, index, type, name));
+        patches.savePatch(new WavePatch(start, stop, rate, index, type, name));
     }
 
 
-    public WavePatch getPatch(int index)
-    {
+    public WavePatch getPatch(int index) {
         return patches.getPatch(index);
     }
 
 
-    public int getPatchIndex()
-    {
+    public int getPatchIndex() {
         return patchIndex;
     }
 
@@ -103,8 +121,7 @@ public class WaveSynthesizer extends Thread {
         this.patchIndex = patch;
 
         //check cache
-        if (!patchHash.containsKey(getHash(getPitch())))
-        {
+        if (!patchHash.containsKey(getHash(getPitch()))) {
             //cache patch if not in the cache
             cacheNotesForPatch();
         }
@@ -173,6 +190,10 @@ public class WaveSynthesizer extends Thread {
         //any data written to waveStream will cause audio playback
         byte[] data = null;
 
+
+       // FloatControl gainControl =
+         //       (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+
         try {
             waveStream.connect(outflow); //connecting one half is enough
             //need to make the data repeat if desired
@@ -185,18 +206,14 @@ public class WaveSynthesizer extends Thread {
                 /*
                 would be smart to cache the data unless the wavetable index, scan parameters, or pitch changes
                  */
-                if (changedParameter)
-                {
+                if (changedParameter) {
                     //check cache
                     LOGGER.log(Level.INFO, "checking cache for " + getHash(getPitch()));
-                    if (patchHash.containsKey(getHash(getPitch())))
-                    {
+                    if (patchHash.containsKey(getHash(getPitch()))) {
                         //use cached value
                         data = patchHash.get(getHash(getPitch())).array();
                         LOGGER.log(Level.INFO, " :) cache hit");
-                    }
-                    else
-                    {
+                    } else {
                         //note- am only caching when you save a patch
                         //on patch change after restart, the cache is empty, so should cache then, too
                         data = generateWaveStream();
@@ -218,33 +235,53 @@ public class WaveSynthesizer extends Thread {
                 //must be fixed.
 
                 max = data.length / WavesynConstants.BUFFERSIZE;
-                for (int i = 0; i < (int)max; i++) {
+
+
+                for (int i = 0; i < (int) max; i++) {
                     //write buffers of data to the player thread
-                    outflow.write(data, i * BUFFERSIZE, BUFFERSIZE);
+                    if (alreadyOn) {
+                        outflow.write(data, i * BUFFERSIZE, BUFFERSIZE);
+                    }
+                    else
+                    {
+                        outflow.write(zeroBuffer, 0, BUFFERSIZE);
+                    }
                     if (changedParameter) {
                         break;
                     }
                 }
 
-                //need to ensure this is proper length and even byte aligned. how?
-                if ( data.length % BUFFERSIZE > 0)
-                {
-                    int overage = data.length % BUFFERSIZE;
-                    //got extra data. copy the remaining data at end of buffer and fade it out
-                    byte[] extra =  Arrays.copyOfRange(data, data.length - overage, data.length);   // AudioHelpers.fadeOut(Arrays.copyOfRange(data, data.length - overage, data.length));
-                    outflow.write(extra);
-                    //LOGGER.log(Level.INFO, "wrote extra faded audio " + extra.length);
-                    //AudioHelpers.saveFile(extra, "extra.wav");
+                if (alreadyOn) {
+                    //need to ensure this is proper length and even byte aligned. how?
+                    if (data.length % BUFFERSIZE > 0) {
+                        int overage = data.length % BUFFERSIZE;
+                        //got extra data. copy the remaining data at end of buffer and fade it out
+                        byte[] extra = Arrays.copyOfRange(data, data.length - overage, data.length);   // AudioHelpers.fadeOut(Arrays.copyOfRange(data, data.length - overage, data.length));
+                        outflow.write(extra);
+                    }
                 }
 
+
+                Thread.sleep(5);
+
             }
-        } catch (IOException e) {
-            LOGGER.log(Level.ALL, "IOException", e);
+        } catch (IOException | InterruptedException e) {
+            LOGGER.log(Level.ALL, "Main Loop Exception", e);
         }
     }
 
 
+    public void turnOn()
+    {
+        alreadyOn = true;
+        audioPlayer.setDiscard(false);
+    }
 
+    public void turnOff()
+    {
+        alreadyOn = false;
+        audioPlayer.setDiscard(true);
+    }
 
     /*
    Creates a stream of audio data using wavtables.
@@ -254,10 +291,8 @@ public class WaveSynthesizer extends Thread {
         byte[] data = new byte[1];
         byte[] sample;
 
-        switch (lfo)
-        {
-            case SAW:
-            {
+        switch (lfo) {
+            case SAW: {
                 //now lets play an audio file
                 for (int i = startIndex; i < stopIndex; i++) {
                     //build big buffer- make it a patch
@@ -273,8 +308,7 @@ public class WaveSynthesizer extends Thread {
                 break;
             }
 
-            case TRIANGLE:
-            {
+            case TRIANGLE: {
                 //now lets play an audio file
                 for (int i = startIndex; i < stopIndex; i++) {
                     //build big buffer- make it a patch
@@ -311,34 +345,24 @@ public class WaveSynthesizer extends Thread {
 
             //pitch shifting induces a string of zero byte values (about 100 bytes) wide near end of first buffer (4-5000 bytes)
 
-            if (lfo == LfoType.SAW)
-            {
+            if (lfo == LfoType.SAW) {
                 //no smoothing used
                 return AudioHelpers.trim(pitchShifted.array());
             }
 
-            //else
-            //return AudioHelpers.smoothBySlope(AudioHelpers.trim(pitchShifted.array()));
-
-            //AudioHelpers.saveFile(AudioHelpers.trim(pitchShifted.array()), "presmoothed.wav");
-
             return AudioHelpers.smoothByCycle(AudioHelpers.trim(pitchShifted.array()));
-
         }
         //else
         return data;
     }
 
 
-
     /*
     Generate a wave form for every note in a patch. Store in a hash table.
      */
-    public void cacheNotesForPatch()
-    {
+    public void cacheNotesForPatch() {
         //if already in cache return
-        if (patchHash.containsKey(getHash(0)))
-        {
+        if (patchHash.containsKey(getHash(0))) {
             return;
         }
 
@@ -346,15 +370,14 @@ public class WaveSynthesizer extends Thread {
         int currentPitch = getPitch();
 
         //just doing 30 notes for now. remember, it is a pitch differential. '0' is really D3 I think.
-        int notes = MAXPITCH/100 + 1;
+        int notes = MAXPITCH / 100 + 1;
 
-        for (int i = 0; i < notes; i++)
-        {
+        for (int i = 0; i < notes; i++) {
             setPitch(i * 100);
             ByteBuffer pitch = ByteBuffer.wrap(generateWaveStream());
             //cache the pitch using a hash of pitch and patch
-            patchHash.put(getHash(i*100), pitch);
-            LOGGER.log(Level.INFO, "caching " + getHash(i*100));
+            patchHash.put(getHash(i * 100), pitch);
+            LOGGER.log(Level.INFO, "caching " + getHash(i * 100));
         }
 
         //restore pitch
@@ -363,8 +386,7 @@ public class WaveSynthesizer extends Thread {
     }
 
 
-    private String getHash(int pitch)
-    {
+    private String getHash(int pitch) {
         //use current patch settings int start, int stop, int rate, int index, LfoType type, in hash
         //plus the pitch to keep unique. colons prevent chance of collision. Example 1 15 22 is same as 11 52 2 without :
 
@@ -388,8 +410,7 @@ public class WaveSynthesizer extends Thread {
     }
 
 
-    public int getPitch()
-    {
+    public int getPitch() {
         return desiredPitch;
     }
 
@@ -411,9 +432,7 @@ public class WaveSynthesizer extends Thread {
             //LOGGER.log(Level.INFO, "wsola buffer= " + wsola.getInputBufferSize());
             dispatcher = AudioDispatcherFactory.fromByteArray(source, MONO_WAV, wsola.getInputBufferSize(), wsola.getOverlap());
             dispatcher.setZeroPadLastBuffer(true);
-        }
-        catch (UnsupportedAudioFileException e)
-        {
+        } catch (UnsupportedAudioFileException e) {
             e.printStackTrace();
         }
 
@@ -427,14 +446,155 @@ public class WaveSynthesizer extends Thread {
     }
 
 
-    private  double centToFactor(double cents) {
+    private double centToFactor(double cents) {
         return 1 / Math.pow(Math.E, cents * Math.log(2) / 1200 / Math.log(Math.E));
     }
 
 
     private double factorToCents(double factor) {
+
         return 1200 * Math.log(1 / factor) / Math.log(2);
     }
 
 
+
+    //MIDI Synthesizer interface. Only minimal implementation since that is all I need.
+
+    @Override
+    public int getMaxPolyphony() {
+        return 1;
+    }
+
+    @Override
+    public long getLatency() {
+        return 10;
+    }
+
+    @Override
+    public MidiChannel[] getChannels() {
+        return midiChannel;
+    }
+
+    @Override
+    public VoiceStatus[] getVoiceStatus() {
+        return null;
+    }
+
+    @Override
+    public boolean isSoundbankSupported(Soundbank soundbank) {
+        return false;
+    }
+
+    @Override
+    public boolean loadInstrument(Instrument instrument) {
+        return false;
+    }
+
+    @Override
+    public void unloadInstrument(Instrument instrument) {
+        //noop
+    }
+
+    @Override
+    public boolean remapInstrument(Instrument from, Instrument to) {
+        return false;
+    }
+
+    @Override
+    public Soundbank getDefaultSoundbank() {
+        return null;
+    }
+
+    @Override
+    public Instrument[] getAvailableInstruments() {
+        return null;
+    }
+
+    @Override
+    public Instrument[] getLoadedInstruments() {
+        return null;
+    }
+
+    @Override
+    public boolean loadAllInstruments(Soundbank soundbank) {
+        return false;
+    }
+
+    @Override
+    public void unloadAllInstruments(Soundbank soundbank) {
+        //noop
+    }
+
+    @Override
+    public boolean loadInstruments(Soundbank soundbank, Patch[] patchList) {
+        return false;
+    }
+
+    @Override
+    public void unloadInstruments(Soundbank soundbank, Patch[] patchList) {
+        //noop
+    }
+
+    @Override
+    public Info getDeviceInfo() {
+        return WaveSynInfo.getInstance();
+    }
+
+    @Override
+    public void open() throws MidiUnavailableException {
+        //if initialized, it is open. This does nothing.
+    }
+
+    @Override
+    public void close() {
+        open = false;
+    }
+
+    @Override
+    public boolean isOpen() {
+        return open;
+    }
+
+    @Override
+    public long getMicrosecondPosition() {
+        return 0;
+    }
+
+
+    //this is sa monophonnic synth with one channel
+    @Override
+    public int getMaxReceivers() {
+        return 1;
+    }
+
+
+    @Override
+    public Receiver getReceiver() throws MidiUnavailableException {
+        return receiver;
+    }
+
+    @Override
+    public List<Receiver> getReceivers() {
+        return receivers;
+    }
+
+
+    //There is no transmitter for this synth
+    @Override
+    public int getMaxTransmitters() {
+        return 0;
+    }
+
+    @Override
+    public Transmitter getTransmitter() throws MidiUnavailableException {
+        return null;
+    }
+
+    @Override
+    public List<Transmitter> getTransmitters() {
+        return null;
+    }
+
 }
+
+

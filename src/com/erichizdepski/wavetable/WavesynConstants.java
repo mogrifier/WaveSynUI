@@ -18,7 +18,7 @@ public class WavesynConstants {
 
     //accomodates the biggest waveform buffer of all tables scans I have seen by about 50%
     public static final int MAXSIZE = 10000000;
-    public static final int BUFFERSIZE = 5120;
+    public static final int BUFFERSIZE =5120;
     public static final double SAMPLERATE = 44100;
     public static final int WAVESAMPLESIZE = 512;
 
@@ -49,5 +49,8 @@ public class WavesynConstants {
     //patch dialog
     public static final String PATCHDIALOGTITLE = "Save Patch";
     public static final String PATCHNAME= "Enter a patch name or use default value";
+
+    //midi stuff
+    public static final int VELOCITY = 100;
 
 }

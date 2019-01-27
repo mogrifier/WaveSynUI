@@ -1,6 +1,5 @@
 package com.erichizdepski.wavetable;
 
-import com.erichizdepski.util.PatchList;
 import com.erichizdepski.util.WavePatch;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -9,7 +8,9 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.input.KeyEvent;
 
+import javax.sound.midi.*;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
@@ -24,6 +25,9 @@ public class Controller {
     private WaveSynthesizer synth;
     private PipedPlayer player;
     private final static Logger LOGGER = Logger.getLogger(Controller.class.getName());
+
+    //for midi
+    Receiver receiver;
 
     @FXML
     private ChoiceBox<String> lfoType, wavetableSelect, patchSelect;
@@ -43,6 +47,8 @@ public class Controller {
     @FXML
     private void initialize()
     {
+        boolean gotError = false;
+
         try {
             LOGGER.log(Level.INFO, "initializing...");
             synth = new WaveSynthesizer();
@@ -161,23 +167,35 @@ public class Controller {
 
             });
 
-            //pitch control test
+            //pitch control
             pitchSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
                 synth.setPitch(newValue.intValue());
             });
 
+            //midi
+            receiver = synth.getReceiver();
 
             synth.setAlive(true);
             synth.start();
             player.setAlive(true);
             player.start();
+            //put handle in synth
+            synth.setPlayer(player);
         }
-        catch (IOException e)
+        catch (IOException | MidiUnavailableException e)
         {
             e.printStackTrace();
+            gotError = true;
         }
 
-        LOGGER.log(Level.INFO, "initialization complete");
+        if (!gotError) {
+            LOGGER.log(Level.INFO, "initialization complete");
+        }
+        else
+        {
+            LOGGER.log(Level.INFO, "initialization failed");
+            shutdown();
+        }
     }
 
 
@@ -212,6 +230,41 @@ public class Controller {
     {
         synth.setAlive(false);
         player.setAlive(false);
+        synth.close();
         return true;
+    }
+
+    public void noteOn(KeyEvent event) {
+        //go through the midi code even though just coming from a typing keyboard
+        try {
+            ShortMessage msg = new ShortMessage();
+            msg.setMessage(ShortMessage.NOTE_ON, getNoteForKey(event), VELOCITY);
+            receiver.send(msg, 0);
+        }
+        catch (InvalidMidiDataException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void noteOff(KeyEvent event) {
+        //go through the midi code even though just coming from a typing keyboard;
+
+        try {
+            ShortMessage msg = new ShortMessage();
+            msg.setMessage(ShortMessage.NOTE_OFF, getNoteForKey(event), VELOCITY);
+            receiver.send(msg, 0);
+        }
+        catch (InvalidMidiDataException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private int getNoteForKey(KeyEvent e)
+    {
+        //need to relate wavesyn pitch range D4 to 30 notes above. D4 = 62. Map a-z plus 4 numbers?
+        // ascii a = 97; A = 65. just play with caps on??
+        int note = e.getCode().ordinal() + 21;
+        return note;
     }
 }
