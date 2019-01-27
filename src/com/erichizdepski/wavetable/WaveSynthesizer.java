@@ -242,10 +242,12 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
                     if (alreadyOn) {
                         outflow.write(data, i * BUFFERSIZE, BUFFERSIZE);
                     }
+                    /*
                     else
                     {
                         outflow.write(zeroBuffer, 0, BUFFERSIZE);
                     }
+                    */
                     if (changedParameter) {
                         break;
                     }

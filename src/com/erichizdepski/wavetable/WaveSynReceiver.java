@@ -53,7 +53,7 @@ public class WaveSynReceiver implements Receiver {
             //note off
             LOGGER.log(Level.INFO, "NOTE OFF");
             alreadyOn = false;
-            synth.turnOff();
+            //synth.turnOff();
         }
     }
 

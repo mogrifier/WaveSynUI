@@ -18,7 +18,7 @@ public class WavesynConstants {
 
     //accomodates the biggest waveform buffer of all tables scans I have seen by about 50%
     public static final int MAXSIZE = 10000000;
-    public static final int BUFFERSIZE =5120;
+    public static final int BUFFERSIZE = 5120;
     public static final double SAMPLERATE = 44100;
     public static final int WAVESAMPLESIZE = 512;
 
