@@ -46,14 +46,14 @@ public class WaveSynReceiver implements Receiver {
             int pitchCents = (note - 62) * 100;
             synth.setPitch(pitchCents);
             synth.turnOn();
-            LOGGER.log(Level.INFO, "NOTE ON " + pitchCents);
+            //LOGGER.log(Level.INFO, "NOTE ON " + pitchCents);
         }
         else if (status == ShortMessage.NOTE_OFF)
         {
             //note off
-            LOGGER.log(Level.INFO, "NOTE OFF");
+            //LOGGER.log(Level.INFO, "NOTE OFF");
             alreadyOn = false;
-            //synth.turnOff();
+            synth.turnOff();
         }
     }
 

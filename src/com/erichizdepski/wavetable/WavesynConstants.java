@@ -53,4 +53,6 @@ public class WavesynConstants {
     //midi stuff
     public static final int VELOCITY = 100;
 
+    //for flushing left over audio from kast note played
+    public static final int AUDIOFLUSH = 9000;
 }

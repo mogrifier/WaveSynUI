@@ -208,16 +208,16 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
                  */
                 if (changedParameter) {
                     //check cache
-                    LOGGER.log(Level.INFO, "checking cache for " + getHash(getPitch()));
+                    //LOGGER.log(Level.INFO, "checking cache for " + getHash(getPitch()));
                     if (patchHash.containsKey(getHash(getPitch()))) {
                         //use cached value
                         data = patchHash.get(getHash(getPitch())).array();
-                        LOGGER.log(Level.INFO, " :) cache hit");
+                        //LOGGER.log(Level.INFO, " :) cache hit");
                     } else {
                         //note- am only caching when you save a patch
                         //on patch change after restart, the cache is empty, so should cache then, too
                         data = generateWaveStream();
-                        LOGGER.log(Level.INFO, " :( cache miss");
+                        //LOGGER.log(Level.INFO, " :( cache miss");
 
                     }
 
@@ -248,21 +248,20 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
                         outflow.write(zeroBuffer, 0, BUFFERSIZE);
                     }
                     */
+
                     if (changedParameter) {
                         break;
                     }
                 }
 
                 if (alreadyOn) {
-                    //need to ensure this is proper length and even byte aligned. how?
                     if (data.length % BUFFERSIZE > 0) {
                         int overage = data.length % BUFFERSIZE;
-                        //got extra data. copy the remaining data at end of buffer and fade it out
+                        //got extra data. copy the remaining data at end of buffer
                         byte[] extra = Arrays.copyOfRange(data, data.length - overage, data.length);   // AudioHelpers.fadeOut(Arrays.copyOfRange(data, data.length - overage, data.length));
                         outflow.write(extra);
                     }
                 }
-
 
                 Thread.sleep(5);
 
@@ -276,13 +275,13 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
     public void turnOn()
     {
         alreadyOn = true;
-        audioPlayer.setDiscard(false);
+        audioPlayer.setMute(false);
     }
 
     public void turnOff()
     {
         alreadyOn = false;
-        audioPlayer.setDiscard(true);
+        audioPlayer.setMute(true);
     }
 
     /*

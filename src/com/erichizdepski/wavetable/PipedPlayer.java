@@ -1,13 +1,13 @@
 package com.erichizdepski.wavetable;
 
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.SourceDataLine;
+import javax.sound.sampled.*;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.sound.sampled.BooleanControl.Type;
+
+import static com.erichizdepski.wavetable.WavesynConstants.AUDIOFLUSH;
 
 
 /**
@@ -21,7 +21,7 @@ public class PipedPlayer extends Thread
     PipedInputStream input = null;
     boolean alive = false;
     //control data flushing behavior
-    boolean discard = false;
+    boolean mute = false;
     int buffersize = 0;
     boolean restart = false;
 
@@ -45,12 +45,14 @@ public class PipedPlayer extends Thread
         //now create a playback piece
         DataLine.Info info = null;
         SourceDataLine line = null;
+        BooleanControl mute = null;
 
         try
         {
             info = new DataLine.Info(SourceDataLine.class, WavesynConstants.MONO_WAV);
             line = (SourceDataLine)AudioSystem.getLine(info);
             line.open(WavesynConstants.MONO_WAV, buffersize);
+            mute = (BooleanControl)line.getControl(Type.MUTE);
             line.start();
             byte[] buffer = new byte[buffersize];
 
@@ -59,29 +61,26 @@ public class PipedPlayer extends Thread
 
             while(alive)
             {
-                //this stops playback but there is data from old note still in buffer
-                if (discard)
+                //there is data from old note still in buffer, so it must be muted
+                if (this.mute)
                 {
-                    line.flush();
-                    line.stop();
-                    //TODO there is still audio in the output buffer being played that I can't get rid of. Could try with a
-                    //gain controller to "duck" the stale audio
+                    /* TODO muting and skipping some bytes solves the problem of hearing the prior note. Still not smooth
+                    since mute is on/off and abrupt. Would be best to try the gain control and a really fast fade out
+                    and fade in. This should really smooth it out.
+                     */
+                    //mute the line
+                    mute.setValue(true);
                     restart = true;
                 }
                 else
                 {
-                    line.start();
                     if (restart) {
-                        //just do this once- after note off/on
-                        line.flush();
+                        //skip some bytes to get rid of the data from the last note played
+                        input.skip(AUDIOFLUSH);
                         restart = false;
+                        mute.setValue(false);
                     }
-                    /*
-                    Found an effect- skip bytes is neat. noisy. could add a UI button to turn on off. Other
-                    realtime controls.
 
-                    input.skip(25000);
-                     */
                     length = input.read(buffer);
                     if (length > 0)
                     {
@@ -118,8 +117,8 @@ public class PipedPlayer extends Thread
         }
     }
 
-    public void setDiscard(boolean status)
+    public void setMute(boolean status)
     {
-        discard = status;
+        mute = status;
     }
 }
