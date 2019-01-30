@@ -33,6 +33,13 @@ public class WaveSynReceiver implements Receiver {
         int status = message.getStatus();
         int note = (int)(midi[1] & 0xFF);
 
+        //TODO skip out of range notes for now
+        if (note < 41 || note > 71)
+        {
+            //think about note on off signal
+            return;
+        }
+
         if (status == ShortMessage.NOTE_ON)
         {
             if (alreadyOn)
@@ -43,10 +50,12 @@ public class WaveSynReceiver implements Receiver {
 
             alreadyOn = true;
             //set pitch to given note
-            int pitchCents = (note - 62) * 100;
+
+            //moog range is 48 to 84 (c to c). wavesyn is currently 30 notes vice 37. d to g.
+            int pitchCents = (note - 41) * 100;
             synth.setPitch(pitchCents);
             synth.turnOn();
-            //LOGGER.log(Level.INFO, "NOTE ON " + pitchCents);
+            LOGGER.log(Level.INFO, "midi note =  " + note + " NOTE ON " + pitchCents);
         }
         else if (status == ShortMessage.NOTE_OFF)
         {

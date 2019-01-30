@@ -27,7 +27,8 @@ public class Controller {
     private final static Logger LOGGER = Logger.getLogger(Controller.class.getName());
 
     //for midi
-    Receiver receiver;
+    private Receiver receiver;
+    private MidiDevice moogKeyboard;
 
     @FXML
     private ChoiceBox<String> lfoType, wavetableSelect, patchSelect;
@@ -51,6 +52,7 @@ public class Controller {
 
         try {
             LOGGER.log(Level.INFO, "initializing...");
+
             synth = new WaveSynthesizer();
             player = new PipedPlayer(synth.getAudioStream(), WavesynConstants.BUFFERSIZE);
 
@@ -174,6 +176,19 @@ public class Controller {
 
             //midi
             receiver = synth.getReceiver();
+
+            //TODO fix HACK. Ideally let user select midi keyboard from a menu in the UI
+            MidiDevice.Info moogInfo = null;
+            //get all system devices
+            MidiDevice.Info[] allDevices = MidiSystem.getMidiDeviceInfo();
+            for (int i = 0; i < allDevices.length; i++) {
+                if (allDevices[i].getName().equals("Moog Sub 37")) {
+                    moogInfo = allDevices[i];
+                }
+            }
+            moogKeyboard = MidiSystem.getMidiDevice(moogInfo);
+            moogKeyboard.open();
+            moogKeyboard.getTransmitter().setReceiver(receiver);
 
             synth.setAlive(true);
             synth.start();

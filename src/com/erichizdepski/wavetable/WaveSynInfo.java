@@ -6,6 +6,7 @@ public class WaveSynInfo extends MidiDevice.Info {
 
     private static WaveSynInfo instance = null;
 
+    static
     {
         //static initializer
         instance = new WaveSynInfo("wavesyn", "The Hope Machine",

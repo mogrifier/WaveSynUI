@@ -88,7 +88,7 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
         midiChannel = new WaveSynChannel[1];
         midiChannel[0] = new WaveSynChannel(this);
         keyPlayer = new KeyPlayer(midiChannel[0]);
-        keyPlayer.start();
+        //keyPlayer.start();
     }
 
 
