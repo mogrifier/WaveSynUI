@@ -19,6 +19,7 @@ import static com.erichizdepski.wavetable.WavesynConstants.*;
 public class WaveSynthesizer extends Thread implements Synthesizer {
 
 
+
     public enum LfoType {
         SAW(LFO_TYPE.get(0)),
         SINE(LFO_TYPE.get(1)),
@@ -51,6 +52,8 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
     boolean changedParameter = true;
     int desiredPitch = 0;
     int actualPitch = 0;
+    int fineTune = 0;
+    int coarseTune = 0;
     LfoType lfo = LfoType.SAW;
     //patch handling
     PatchList patches;
@@ -87,7 +90,7 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
         receivers.add(receiver);
         midiChannel = new WaveSynChannel[1];
         midiChannel[0] = new WaveSynChannel(this);
-        keyPlayer = new KeyPlayer(midiChannel[0]);
+        keyPlayer = new KeyPlayer();//midiChannel[0]);
         //keyPlayer.start();
     }
 
@@ -121,10 +124,12 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
         this.patchIndex = patch;
 
         //check cache
+        /*
         if (!patchHash.containsKey(getHash(getPitch()))) {
             //cache patch if not in the cache
             cacheNotesForPatch();
         }
+        */
     }
 
     public void setAlive(boolean alive) {
@@ -217,7 +222,7 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
                         //note- am only caching when you save a patch
                         //on patch change after restart, the cache is empty, so should cache then, too
                         data = generateWaveStream();
-                        //LOGGER.log(Level.INFO, " :( cache miss");
+                        LOGGER.log(Level.INFO, " :( cache miss");
 
                     }
 
@@ -374,6 +379,9 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
         int notes = MAXPITCH / 100 + 1;
 
         for (int i = 0; i < notes; i++) {
+
+            //TODO need to put coarse and fine pitch in so it can be cached and play better (but not a Patch!)
+
             setPitch(i * 100);
             ByteBuffer pitch = ByteBuffer.wrap(generateWaveStream());
             //cache the pitch using a hash of pitch and patch
@@ -406,8 +414,22 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
 
     public void setPitch(int pitch) {
         //LOGGER.log(Level.INFO, "Pitch cents change " + Integer.toString(pitch));
-        desiredPitch = pitch;
+        //fineTune is cents, coarseTune is half steps so multiply by 100
+        desiredPitch = pitch + fineTune + (coarseTune * 100);
+        LOGGER.log(Level.INFO, "pitch=" + desiredPitch);
         changedParameter = true;
+    }
+
+
+    public void setCoarseTune(int intValue) {
+        coarseTune = intValue;
+        //changedParameter = true;
+    }
+
+
+    public void setFineTune(int intValue) {
+        fineTune = intValue;
+        //changedParameter = true;
     }
 
 

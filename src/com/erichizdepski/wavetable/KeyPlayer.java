@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 
 import static com.erichizdepski.wavetable.WavesynConstants.VELOCITY;
 
-public class KeyPlayer extends Thread implements KeyListener {
+public class KeyPlayer implements KeyListener {
 
     private final static Logger LOGGER = Logger.getLogger(KeyPlayer.class.getName());
     private boolean alive = true;
@@ -17,11 +17,12 @@ public class KeyPlayer extends Thread implements KeyListener {
 
     private boolean on = false;
 
-    public KeyPlayer(MidiChannel channel)
+    public KeyPlayer() // MidiChannel channel)
     {
-        channel = channel;
+        //channel = channel;
     }
 
+    /*
     public void run()
     {
         //listen for keyboard events. convert a key to a note and send command to play it.
@@ -46,6 +47,7 @@ public class KeyPlayer extends Thread implements KeyListener {
         }
 
     }
+    */
 
     /** Handle the key typed event from the text field. */
     @Override

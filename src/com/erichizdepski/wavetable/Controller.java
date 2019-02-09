@@ -4,11 +4,9 @@ import com.erichizdepski.util.WavePatch;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.Slider;
-import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
+import org.omg.CORBA.LongLongSeqHelper;
 
 import javax.sound.midi.*;
 import java.io.IOException;
@@ -38,6 +36,15 @@ public class Controller {
 
     @FXML
     private Button savePatch;
+
+    @FXML
+    private ToggleButton toggleMIDI;
+
+    @FXML
+    private Label midiNote;
+
+    @FXML
+    private Spinner<Integer> fineTuner, coarseTuner;
 
     @FXML
     private TextInputDialog patchDaialog;
@@ -127,6 +134,41 @@ public class Controller {
                 synth.setScanRate(MAXSCAN - newValue.intValue());
             });
 
+            // Value factory.
+            SpinnerValueFactory<Integer> centValueFactory = //
+                    new SpinnerValueFactory.IntegerSpinnerValueFactory(-50, 50, 0);
+
+            SpinnerValueFactory<Integer> noteValueFactory = //
+                    new SpinnerValueFactory.IntegerSpinnerValueFactory(-12, 12, 0);
+
+            fineTuner.setValueFactory(centValueFactory);
+            coarseTuner.setValueFactory(noteValueFactory);
+
+            fineTuner.valueProperty().addListener((observable, oldValue, newValue) -> {
+                //pass value to the pitch control in the synth
+                synth.setFineTune(newValue.intValue());
+            });
+
+            coarseTuner.valueProperty().addListener((observable, oldValue, newValue) -> {
+                ////pass value to the pitch control in the synth
+                synth.setCoarseTune(newValue.intValue());
+            });
+
+
+            //default to MIDI off
+            toggleMIDI.setSelected(false);
+
+            //midi
+            receiver = synth.getReceiver();
+
+            //turn external MIDI on or off
+            toggleMIDI.setOnAction((event) ->
+            {
+                LOGGER.log(Level.INFO, "toggle clicked");
+
+                //how to know if on??
+                initExternalMidi();
+            });
 
             //for saving patches
             savePatch.setOnAction((event) ->
@@ -174,22 +216,6 @@ public class Controller {
                 synth.setPitch(newValue.intValue());
             });
 
-            //midi
-            receiver = synth.getReceiver();
-
-            //TODO fix HACK. Ideally let user select midi keyboard from a menu in the UI
-            MidiDevice.Info moogInfo = null;
-            //get all system devices
-            MidiDevice.Info[] allDevices = MidiSystem.getMidiDeviceInfo();
-            for (int i = 0; i < allDevices.length; i++) {
-                if (allDevices[i].getName().equals("Moog Sub 37")) {
-                    moogInfo = allDevices[i];
-                }
-            }
-            moogKeyboard = MidiSystem.getMidiDevice(moogInfo);
-            moogKeyboard.open();
-            moogKeyboard.getTransmitter().setReceiver(receiver);
-
             synth.setAlive(true);
             synth.start();
             player.setAlive(true);
@@ -213,6 +239,45 @@ public class Controller {
         }
     }
 
+
+    private void initExternalMidi()
+    {
+        boolean foundMoog = false;
+
+        try {
+
+            //TODO fix HACK. Ideally let user select midi board from a menu in the UI
+            MidiDevice.Info moogInfo = null;
+            //get all system devices
+            MidiDevice.Info[] allDevices = MidiSystem.getMidiDeviceInfo();
+            for (int i = 0; i < allDevices.length; i++) {
+
+                LOGGER.log(Level.INFO, "midi device names " + allDevices[i].getName());
+
+                if (allDevices[i].getName().equals("Moog Sub 37")) {
+                    moogInfo = allDevices[i];
+                    foundMoog = true;
+                    break;
+                }
+            }
+
+            if (foundMoog) {
+                moogKeyboard = MidiSystem.getMidiDevice(moogInfo);
+                moogKeyboard.open();
+                moogKeyboard.getTransmitter().setReceiver(receiver);
+            }
+            else
+            {
+                LOGGER.log(Level.INFO, "Moog Sub 37 not found");
+                //turn off midi toggle
+                //toggleMIDI.setSelected(false);
+            }
+        }
+        catch (MidiUnavailableException e)
+        {
+            LOGGER.log(Level.INFO, e.getMessage());
+        }
+    }
 
     private void setPatchList()
     {
@@ -239,14 +304,14 @@ public class Controller {
 
     /*
      * Properly clean up the threads, else the synth can keep playing.
-     * @return boolean True means it shutdown. False would be real bad.
      */
-    public boolean shutdown()
+    public void shutdown()
     {
         synth.setAlive(false);
         player.setAlive(false);
         synth.close();
-        return true;
+
+        System.exit(1);
     }
 
     public void noteOn(KeyEvent event) {
@@ -279,7 +344,14 @@ public class Controller {
     {
         //need to relate wavesyn pitch range D4 to 30 notes above. D4 = 62. Map a-z plus 4 numbers?
         // ascii a = 97; A = 65. just play with caps on??
+        //must get value in range 0 to 127
         int note = e.getCode().ordinal() + 21;
+        this.midiNote.setText(Integer.toString(note));
+        if (note > 127)
+        {
+            note = 127;
+        }
+
         return note;
     }
 }

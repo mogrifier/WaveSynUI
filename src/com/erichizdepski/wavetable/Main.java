@@ -22,7 +22,7 @@ public class Main extends Application {
 
         primaryStage.setTitle("WaveSyn");
 
-        Scene scene = new Scene(root, 740, 474);
+        Scene scene = new Scene(root, 900, 500);
         primaryStage.setScene(scene);
 
         primaryStage.show();
@@ -53,14 +53,7 @@ public class Main extends Application {
     @Override
     public void stop() {
 
-        if (controls.shutdown())
-        {
-            System.out.println("synth shutdown");
-        }
-        else
-        {
-            System.out.println("synth failed to hutdown");
-        }
+        controls.shutdown();
 
         //patches are saved each time you make a patch
         Platform.exit();
