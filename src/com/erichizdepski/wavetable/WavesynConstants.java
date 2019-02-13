@@ -18,12 +18,12 @@ public class WavesynConstants {
 
     //accomodates the biggest waveform buffer of all tables scans I have seen by about 50%
     public static final int MAXSIZE = 10000000;
-    public static final int BUFFERSIZE = 5120;
+    public static final int BUFFERSIZE = 2560;
     public static final double SAMPLERATE = 44100;
     public static final int WAVESAMPLESIZE = 512;
 
 
-    public static List<String> LFO_TYPE = Arrays.asList("SAW", "SINE", "TRIANGLE");
+    public static List<String> LFO_TYPE = Arrays.asList("SAW", "SINE", "TRIANGLE", "SQUARE");
 
     public static final int STOPINDEX_DEFAULT = 20;
     public static final int STARTINDEX_DEFAULT = 0;

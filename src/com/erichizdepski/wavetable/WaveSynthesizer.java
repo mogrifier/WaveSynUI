@@ -23,7 +23,8 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
     public enum LfoType {
         SAW(LFO_TYPE.get(0)),
         SINE(LFO_TYPE.get(1)),
-        TRIANGLE(LFO_TYPE.get(2));
+        TRIANGLE(LFO_TYPE.get(2)),
+        SQUARE(LFO_TYPE.get(3));
 
         private String lfo;
 
@@ -230,7 +231,7 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
                     actualPitch = 0;
                     changedParameter = false;
                     //LOGGER.log(Level.INFO,"parameter changed");
-                    //AudioHelpers.saveFile(data, "audio.wav");
+                    //AudioHelpers.saveFile(data, "squarelfo.wav");
                 }
 
                 //now use the new bytebuffer for playback
@@ -296,6 +297,7 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
         ByteBuffer bigBuffer = ByteBuffer.allocate(MAXSIZE); //10MB looks good
         byte[] data = new byte[1];
         byte[] sample;
+        byte[] sample2;
 
         switch (lfo) {
             case SAW: {
@@ -305,6 +307,27 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
                     sample = TableLoader.getWaveForm(tables.get(getWavetableIndex()), i);
                     for (int j = 0; j < scanRate; j++) {
                         bigBuffer.put(sample);
+                    }
+                }
+                break;
+            }
+
+            case SQUARE: {
+
+                //like saw in a way- no need for sample alignment.
+                sample = TableLoader.getWaveForm(tables.get(getWavetableIndex()), startIndex);
+                sample2 = TableLoader.getWaveForm(tables.get(getWavetableIndex()), stopIndex);
+
+                //making two copies of the patterns since pitchshifting will mess up the first one (zero byte gap)
+                //TODO may need good way to fix the zero byte problem in this case, like full removal of first sample
+                for (int i = 0; i < 2; i++) {
+                    //build big buffer- load first sample several times  (scanRate times) in a row
+                    for (int j = 0; j < scanRate; j++) {
+                        bigBuffer.put(sample);
+                    }
+                    //load second sample same number of times
+                    for (int j = 0; j < scanRate; j++) {
+                        bigBuffer.put(sample2);
                     }
                 }
                 break;
@@ -351,7 +374,7 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
 
             //pitch shifting induces a string of zero byte values (about 100 bytes) wide near end of first buffer (4-5000 bytes)
 
-            if (lfo == LfoType.SAW) {
+            if (lfo == LfoType.SAW || lfo == LfoType.SQUARE) {
                 //no smoothing used
                 return AudioHelpers.trim(pitchShifted.array());
             }
