@@ -218,7 +218,7 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
                     if (patchHash.containsKey(getHash(getPitch()))) {
                         //use cached value
                         data = patchHash.get(getHash(getPitch())).array();
-                        //LOGGER.log(Level.INFO, " :) cache hit");
+                        LOGGER.log(Level.INFO, " :) cache hit");
                     } else {
                         //note- am only caching when you save a patch
                         //on patch change after restart, the cache is empty, so should cache then, too
@@ -334,6 +334,8 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
             }
 
             case SINE: {
+                LOGGER.log(Level.INFO,"****** NOT IMPLEMENTED*****");
+                //FIXME
                 break;
             }
 
@@ -399,9 +401,9 @@ public class WaveSynthesizer extends Thread implements Synthesizer {
         int currentPitch = getPitch();
 
         //just doing 30 notes for now. remember, it is a pitch differential. '0' is really D3 I think.
-        int notes = MAXPITCH / 100 + 1;
+        int notes = (MAXPITCH / 100 + 1) - 24;
 
-        for (int i = 0; i < notes; i++) {
+        for (int i = -24; i < notes; i++) {
 
             //TODO need to put coarse and fine pitch in so it can be cached and play better (but not a Patch!)
 

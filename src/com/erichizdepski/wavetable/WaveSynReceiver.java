@@ -36,17 +36,23 @@ public class WaveSynReceiver implements Receiver {
 
 
         //TODO skip out of range notes for now
-        if (note < 41 || note > 71)
+        if (note < 17 || note > 71)
         {
             //think about note on off signal
+            LOGGER.log(Level.INFO, "midi note out of range");
             return;
         }
 
+        //this is polling and sends a note on signal all the time when using typing keyboard. The key press event
+        //get fired over and over.
+
         if (status == ShortMessage.NOTE_ON)
         {
-            if (alreadyOn)
+            //these logic should cause new note priority and allow for smoother/faster playing on a keyboard
+            if (alreadyOn && note == oldNote)
             {
                 //ignore
+                LOGGER.log(Level.INFO, "alreadyOn");
                 return;
             }
 
@@ -55,6 +61,8 @@ public class WaveSynReceiver implements Receiver {
             oldNote = note;
             //moog range is 48 to 84 (c to c). wavesyn is currently 30 notes vice 37. d to g.
             int pitchCents = (note - 41) * 100;
+
+            //FIXME
             synth.setPitch(pitchCents);
             synth.turnOn();
             LOGGER.log(Level.INFO, "midi note =  " + note + " NOTE ON " + pitchCents);
@@ -62,7 +70,7 @@ public class WaveSynReceiver implements Receiver {
         else if (status == ShortMessage.NOTE_OFF && oldNote == note)
         {
             //note off
-            //LOGGER.log(Level.INFO, "NOTE OFF");
+            LOGGER.log(Level.INFO, "NOTE OFF");
             alreadyOn = false;
             synth.turnOff();
         }

@@ -43,8 +43,7 @@ public class WavesynConstants {
     public static final int MAXSCAN = 96;
 
     //pitch range max in cents
-    //TODO change if expanding lower octave range- can go down two easily
-    public static final int MAXPITCH = 3000;
+    public static final int MAXPITCH = 5400;
 
     //patch dialog
     public static final String PATCHDIALOGTITLE = "Save Patch";
